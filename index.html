@@ -8,11 +8,17 @@
 <link rel="manifest" href="./manifest.json">
 <link rel="icon" href="./icon-192.png" sizes="192x192" type="image/png">
 <link rel="apple-touch-icon" href="./icon-512.png">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,450;9..144,560;9..144,650&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
+  /* ---------- Local fonts ---------- */
+  @font-face{ font-family:'Clash Display'; src:url('./fonts/ClashDisplay-Variable.woff2') format('woff2'); font-weight:200 700; font-style:normal; font-display:swap; }
+  @font-face{ font-family:'Satoshi'; src:url('./fonts/Satoshi-Regular.woff2') format('woff2'); font-weight:400; font-style:normal; font-display:swap; }
+  @font-face{ font-family:'Satoshi'; src:url('./fonts/Satoshi-Bold.woff2') format('woff2'); font-weight:700; font-style:normal; font-display:swap; }
+  @font-face{ font-family:'Manrope'; src:url('./fonts/Manrope-Bold.woff2') format('woff2'); font-weight:700; font-style:normal; font-display:swap; }
   :root{
+    --font-display:'Clash Display','Satoshi',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+    --font-ui:'Satoshi',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+    --font-alt:'Manrope',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+    --font-body:var(--font-ui);
     --bg:#0A0C10;
     --bg-soft:#101319;
     --panel:rgba(255,255,255,0.028);
@@ -25,13 +31,14 @@
     --indigo:#6B5CE0;
     --text:#F2EFE9;
     --text-dim:#9A9CA6;
-    --text-faint:#5E606B;
+    --text-faint:#7B7E8A;
     --danger:#E0605C;
     --r-lg:26px;
     --r-md:16px;
     --r-sm:10px;
     --shadow:0 20px 60px -20px rgba(0,0,0,0.7);
   }
+  html[data-font="alt"]{ --font-body:var(--font-alt); } /* add data-font="alt" on <html> to test Manrope */
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
   html,body{height:100%;}
   body{
@@ -41,12 +48,14 @@
       radial-gradient(900px 600px at 110% 10%, rgba(201,161,90,0.10), transparent 55%),
       var(--bg);
     color:var(--text);
-    font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;
+    font-family:var(--font-body);
+    line-height:1.45;
     -webkit-font-smoothing:antialiased;
     min-height:100vh;
     overflow-x:hidden;
   }
-  h1,h2,h3,.serif{ font-family:'Fraunces',serif; letter-spacing:-0.01em; }
+  h1,h2,h3,.serif,.track-meta strong,.mini-meta strong,.tp-meta strong,.playlist-card .pinfo strong,.all-songs-card .meta strong{ font-family:var(--font-display); letter-spacing:-0.02em; }
+  h1,h2,h3{ font-weight:600; }
   ::selection{ background:var(--brass-glow); }
   button{ font-family:inherit; cursor:pointer; }
   [data-action]{ transition:transform .13s cubic-bezier(.4,0,.2,1), background-color .15s ease, opacity .15s ease; -webkit-tap-highlight-color:transparent; }
@@ -80,6 +89,9 @@
   #bg-scene-root{ position:fixed; inset:0; z-index:0; overflow:hidden; background:var(--bg); }
   .bg-scene{ position:absolute; inset:0; opacity:0; transition:opacity 3.2s ease; overflow:hidden; }
   .bg-scene.active{ opacity:1; }
+  #bg-stock{ position:fixed; inset:0; z-index:0; background:#000 center/cover no-repeat; overflow:hidden; display:none; }
+  #bg-stock video{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:none; pointer-events:none; }
+  html[data-bg="stock"] #bg-scrim{ background:linear-gradient(180deg, rgba(5,6,10,0.42) 0%, rgba(5,6,10,0.50) 35%, rgba(5,6,10,0.66) 70%, rgba(5,6,10,0.82) 100%); }
   #bg-custom{ position:fixed; inset:0; z-index:0; background-color:var(--bg); background-size:cover; background-position:center; }
   #bg-scrim{ position:fixed; inset:0; z-index:1; pointer-events:none;
     background:linear-gradient(180deg, rgba(5,6,10,0.30) 0%, rgba(5,6,10,0.38) 35%, rgba(5,6,10,0.56) 70%, rgba(5,6,10,0.74) 100%); }
@@ -417,9 +429,14 @@
   .time-label{ font-size:11.5px; color:var(--text-faint); font-variant-numeric:tabular-nums; width:36px; flex-shrink:0; }
   .time-label.end{ text-align:right; }
   input[type="range"]{ -webkit-appearance:none; appearance:none; width:100%; height:4px; border-radius:3px; background:rgba(255,255,255,0.12); outline:none; }
-  input[type="range"]::-webkit-slider-thumb{ -webkit-appearance:none; width:14px; height:14px; border-radius:50%; background:var(--brass); border:2px solid #0A0C10; margin-top:0px; box-shadow:0 2px 6px rgba(0,0,0,0.4); }
+  input[type="range"]::-webkit-slider-thumb{ -webkit-appearance:none; width:14px; height:14px; border-radius:50%; background:var(--brass); border:2px solid #0A0C10; margin-top:-5px; box-shadow:0 2px 6px rgba(0,0,0,0.4); }
   input[type="range"]::-moz-range-thumb{ width:14px; height:14px; border-radius:50%; background:var(--brass); border:2px solid #0A0C10; }
-  #seek-range{ flex:1; }
+  #seek-range{ flex:1; height:14px; background:transparent; }
+  /* line-only seek bar: thumb stays draggable but is invisible */
+  #seek-range::-webkit-slider-thumb{ width:18px; height:18px; margin-top:-7px; background:transparent; border:none; box-shadow:none; }
+  #seek-range::-moz-range-thumb{ width:18px; height:18px; background:transparent; border:none; box-shadow:none; }
+  #seek-range::-moz-range-track{ height:4px; border-radius:3px; background:rgba(255,255,255,0.12); }
+  #seek-range::-moz-range-progress{ height:4px; border-radius:3px; background:var(--brass); }
   #seek-range::-webkit-slider-runnable-track{ background:linear-gradient(to right, var(--brass) var(--fill,0%), rgba(255,255,255,0.12) 0%); border-radius:3px; height:4px; }
 
   .np-controls{ display:flex; align-items:center; justify-content:center; gap:14px; padding:22px 20px 10px; }
@@ -441,18 +458,22 @@
   .settings-list{ padding:8px 20px; }
   .settings-row{ display:flex; align-items:center; justify-content:space-between; padding:16px 4px; border-bottom:1px solid var(--border-soft); }
   .settings-row:last-child{ border-bottom:none; }
-  .settings-row .label{ font-size:14.5px; color:var(--text-dim); }
+  .settings-row .s-label{ font-size:14.5px; color:var(--text-dim); }
   .settings-row .value{ font-size:14.5px; font-weight:600; }
   .danger-btn{ width:100%; margin-top:26px; padding:15px; border-radius:14px; background:rgba(224,96,92,0.12); border:1px solid rgba(224,96,92,0.3); color:var(--danger); font-weight:600; font-size:14.5px; }
 
-  .bg-mode-row{ display:flex; gap:10px; }
+  .bg-mode-row{ display:flex; flex-wrap:wrap; gap:10px; }
   .bg-mode-btn{
-    flex:1; display:flex; flex-direction:column; align-items:center; gap:7px;
+    flex:1 1 calc(50% - 5px); display:flex; flex-direction:column; align-items:center; gap:7px;
     padding:14px 6px; border-radius:14px; border:1px solid var(--border);
     background:var(--panel); color:var(--text-dim); font-size:11.5px; font-weight:600;
   }
   .bg-mode-btn svg{ width:20px; height:20px; }
   .bg-mode-btn.active{ border-color:var(--brass-soft); color:var(--brass); background:rgba(201,164,92,0.12); }
+  .stock-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:12px; }
+  .stock-item{ position:relative; aspect-ratio:9/14; border-radius:14px; overflow:hidden; border:2px solid var(--border); padding:0; background:#111 center/cover no-repeat; color:#fff; }
+  .stock-item.active{ border-color:var(--brass); box-shadow:0 0 0 2px var(--brass-glow); }
+  .stock-item span{ position:absolute; left:0; right:0; bottom:0; padding:16px 6px 6px; font-size:11px; font-weight:700; text-align:center; background:linear-gradient(180deg, transparent, rgba(0,0,0,0.78)); }
   .bg-mode-swatch{ width:20px; height:20px; border-radius:50%; border:1px solid rgba(255,255,255,0.25); display:block; }
   .bg-color-row{ display:flex; align-items:center; gap:12px; margin-top:14px; font-size:13.5px; color:var(--text-dim); }
   .bg-color-row input[type="color"]{ width:44px; height:44px; border-radius:12px; border:1px solid var(--border); background:none; padding:0; flex-shrink:0; }
@@ -649,6 +670,7 @@
   </div>
 </div>
 <div id="bg-custom" style="display:none;"></div>
+<div id="bg-stock"><video id="bg-stock-video" muted loop playsinline preload="auto" disablepictureinpicture></video></div>
 <div id="bg-scrim"></div>
 
 <div id="app"></div>
@@ -683,8 +705,72 @@
   function stopCycle(){
     if(timer){ clearInterval(timer); timer = null; }
   }
+  /* ---------- Stocked Backgrounds (bundled in the app, always available offline) ---------- */
+  var STOCK = [
+    { id:'nature',  type:'video', label:'Forest Light', src:'./media/bg-nature.mp4',  thumb:'./media/thumb-nature.jpg' },
+    { id:'edit',    type:'video', label:'Edit',         src:'./media/bg-edit.mp4',    thumb:'./media/thumb-edit.jpg' },
+    { id:'yotei',   type:'video', label:'Yotei Sunset', src:'./media/bg-yotei.mp4',   thumb:'./media/thumb-yotei.jpg' },
+    { id:'loop-a',  type:'video', label:'Stairs',       src:'./media/bg-loop-a.mp4',  thumb:'./media/thumb-loop-a.jpg' },
+    { id:'loop-b',  type:'video', label:'Rainy City',   src:'./media/bg-loop-b.mp4',  thumb:'./media/thumb-loop-b.jpg' },
+    { id:'art',     type:'image', label:'Hands',        src:'./media/bg-art.jpg',     thumb:'./media/thumb-art.jpg' }
+  ];
+  var stockEl = document.getElementById('bg-stock');
+  var stockVideo = document.getElementById('bg-stock-video');
+  var stockId = 'nature', stockActive = false;
+  try{ stockId = localStorage.getItem('spindle-bg-stock') || 'nature'; }catch(e){}
+  function stockItem(id){ return STOCK.filter(function(x){ return x.id === id; })[0] || STOCK[0]; }
+  function playStock(){
+    if(!stockActive || stockVideo.style.display === 'none' || document.hidden) return;
+    var p = stockVideo.play(); if(p && p.catch) p.catch(function(){});
+  }
+  function setStock(id){
+    var item = stockItem(id);
+    stockId = item.id;
+    try{ localStorage.setItem('spindle-bg-stock', stockId); }catch(e){}
+    if(!stockActive) return;
+    if(item.type === 'video'){
+      stockEl.style.backgroundImage = 'none';
+      if(stockVideo.getAttribute('data-src') !== item.src){
+        stockVideo.setAttribute('data-src', item.src);
+        stockVideo.src = item.src;
+        stockVideo.load();
+      }
+      stockVideo.muted = true;
+      stockVideo.style.display = 'block';
+      playStock();
+    } else {
+      stockVideo.pause();
+      stockVideo.removeAttribute('src'); stockVideo.removeAttribute('data-src'); stockVideo.load();
+      stockVideo.style.display = 'none';
+      stockEl.style.backgroundImage = 'url("' + item.src + '")';
+    }
+  }
+  function leaveStock(){
+    if(!stockActive) return;
+    stockActive = false;
+    stockVideo.pause();
+    stockVideo.removeAttribute('src'); stockVideo.removeAttribute('data-src'); stockVideo.load();
+    stockVideo.style.display = 'none';
+    stockEl.style.display = 'none';
+    stockEl.style.backgroundImage = 'none';
+    document.documentElement.removeAttribute('data-bg');
+  }
+  // save battery: pause the video whenever the app is hidden / screen is off
+  document.addEventListener('visibilitychange', function(){
+    if(document.hidden) stockVideo.pause(); else playStock();
+  });
+
   function setMode(mode, color){
-    if(mode === 'scenery'){
+    if(mode !== 'stock') leaveStock();
+    if(mode === 'stock'){
+      stopCycle();
+      bgRoot.style.display = 'none';
+      customBg.style.display = 'none';
+      stockEl.style.display = 'block';
+      document.documentElement.setAttribute('data-bg', 'stock');
+      stockActive = true;
+      setStock(stockId);
+    } else if(mode === 'scenery'){
       customBg.style.display = 'none';
       bgRoot.style.display = '';
       startCycle();
@@ -710,7 +796,7 @@
   }catch(e){}
   setMode(initialMode, initialColor);
 
-  window.__spindleBg = { setMode: setMode, setPhotoUrl: setPhotoUrl };
+  window.__spindleBg = { setMode: setMode, setPhotoUrl: setPhotoUrl, setStock: setStock, stock: STOCK, getStockId: function(){ return stockId; } };
 })();
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jsmediatags/3.9.5/jsmediatags.min.js"></script>
@@ -738,7 +824,7 @@ const ICONS = {
   repeatOne: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/><text x="10.5" y="16" font-size="8" fill="currentColor" stroke="none" font-family="sans-serif">1</text></svg>`,
   vol: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h4l5 5V4L8 9H4z"/><path d="M17 8a5 5 0 0 1 0 8"/></svg>`,
   dots: `<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>`,
-  settings: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9c.14.32.4.58.72.72"/></svg>`,
+  settings: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>`,
   history: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/><path d="M12 7v5l3 3"/></svg>`,
   copy: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>`,
   archive: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="5" rx="1"/><path d="M4 8v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"/><path d="M10 12h4"/></svg>`,
@@ -1537,6 +1623,35 @@ function updateLyricsUI(){
   }
 }
 
+
+/* ---------- File name -> artist / title (for MP3s with no tags) ---------- */
+const JUNK_WORDS = /\b(official\s*(music\s*)?(video|audio|lyric\s*video|visuali[sz]er)|music\s*video|lyric\s*video|lyrics?|with\s*lyrics|paroles|letra|testo|napisy(\s*pl)?|sub(titulos|s)?(\s*espa[nñ]ol)?|audio|visuali[sz]er|hd|hq|4k|1080p|720p|320\s*kbps|128\s*kbps|remaster(ed)?(\s*\d{4})?)\b/gi;
+function parseFileName(fileName){
+  let n = stripExt(fileName || '');
+  // a double underscore usually marks where ( ) or [ ] used to be -> drop what's inside
+  n = n.replace(/_{2,}[^_]*?_{2,}/g, ' ').replace(/_{2,}.*$/, ' ');
+  n = n.replace(/\([^)]*\)|\[[^\]]*\]/g, ' ');
+  n = n.replace(/_/g, ' ');
+  n = n.replace(JUNK_WORDS, ' ').replace(/\s+/g, ' ').replace(/[\s\-–—|]+$/,'').trim();
+  let artist = '', title = n;
+  const m = n.split(/\s+[-–—]\s+/);
+  if(m.length >= 2){ artist = m[0].trim(); title = m.slice(1).join(' - ').trim(); }
+  return { artist, title: title || stripExt(fileName || '') };
+}
+function lookupNames(track){
+  const hasRealArtist = track.artist && track.artist !== 'Unknown Artist';
+  if(hasRealArtist && track.title && track.title !== stripExt(track.fileName || '')) return { artist: track.artist, title: track.title };
+  const p = parseFileName(track.fileName || track.title || '');
+  return { artist: p.artist || (hasRealArtist ? track.artist : ''), title: p.title };
+}
+const lyricsTried = new Set(); // tracks already auto-searched this session
+async function autoFetchLyrics(track){
+  if(!track || track.lyricsLRC || track.embeddedLyrics || lyricsTried.has(track.id)) return;
+  if(!navigator.onLine) return;
+  lyricsTried.add(track.id);
+  await fetchLyricsOnline(track, true);
+}
+
 /* ---------- Online lyrics lookup (LRCLIB \u2014 free, open, no key required) ---------- */
 let lyricsLookupInProgress = false;
 async function saveLyricsForTrack(track, syncedLyrics, plainLyrics){
@@ -1549,17 +1664,18 @@ async function saveLyricsForTrack(track, syncedLyrics, plainLyrics){
   if(syncedLyrics) track.lyricsLRC = syncedLyrics;
   else if(plainLyrics) track.embeddedLyrics = plainLyrics;
 }
-async function fetchLyricsOnline(track){
+async function fetchLyricsOnline(track, silent){
   if(lyricsLookupInProgress) return;
   if(!navigator.onLine){
-    showToast('You\u2019re offline \u2014 can\u2019t search for lyrics online right now.');
+    if(!silent) showToast('You\u2019re offline \u2014 can\u2019t search for lyrics online right now.');
     return;
   }
   lyricsLookupInProgress = true;
-  showToast('Searching for lyrics\u2026');
+  if(!silent) showToast('Searching for lyrics\u2026');
+  const names = lookupNames(track);
   try{
     // Exact lookup first (title + artist + duration gives the most reliable match).
-    const exactParams = new URLSearchParams({ track_name: track.title || '', artist_name: track.artist || '' });
+    const exactParams = new URLSearchParams({ track_name: names.title || '', artist_name: names.artist || '' });
     if(track.duration) exactParams.set('duration', String(Math.round(track.duration)));
     let found = null;
     try{
@@ -1571,7 +1687,7 @@ async function fetchLyricsOnline(track){
     }catch(e){ /* fall through to fuzzy search below */ }
 
     if(!found){
-      const q = [track.artist, track.title].filter(Boolean).join(' ').trim() || track.title || '';
+      const q = [names.artist, names.title].filter(Boolean).join(' ').trim() || names.title || '';
       const res2 = await fetch('https://lrclib.net/api/search?' + new URLSearchParams({ q }).toString());
       if(res2.ok){
         const results = await res2.json();
@@ -1582,16 +1698,15 @@ async function fetchLyricsOnline(track){
     }
 
     if(!found || (!found.syncedLyrics && !found.plainLyrics)){
-      showToast('No lyrics found online for this song.');
+      if(!silent) showToast('No lyrics found online for this song.');
       return;
     }
     await saveLyricsForTrack(track, found.syncedLyrics || null, found.plainLyrics || null);
     showToast(found.syncedLyrics ? 'Synced lyrics found!' : 'Lyrics found (not time-synced).');
-    render();
-    updateLyricsUI();
+    if(getCurrentPlayingTrack() && getCurrentPlayingTrack().id === track.id){ render(); updateLyricsUI(); }
   }catch(err){
     console.error('Online lyrics lookup failed', err);
-    showToast('Couldn\u2019t reach the lyrics service \u2014 try again later, or upload an .lrc file.');
+    if(!silent) showToast('Couldn\u2019t reach the lyrics service \u2014 try again later, or upload an .lrc file.');
   }finally{
     lyricsLookupInProgress = false;
   }
@@ -1627,8 +1742,8 @@ async function handleFilesSelected(fileList){
       const [meta, duration] = await Promise.all([extractTags(file), extractDuration(file)]);
       const track = {
         id: uid('trk'),
-        title: (meta.title && meta.title.trim()) || stripExt(file.name),
-        artist: (meta.artist && meta.artist.trim()) || 'Unknown Artist',
+        title: (meta.title && meta.title.trim()) || parseFileName(file.name).title,
+        artist: (meta.artist && meta.artist.trim()) || parseFileName(file.name).artist || 'Unknown Artist',
         album: (meta.album && meta.album.trim()) || '',
         duration: duration || 0,
         coverArt: meta.coverArt || null,
@@ -1658,6 +1773,12 @@ async function handleFilesSelected(fileList){
   }
   state.pendingUploadPlaylistId = null;
   render();
+  (async()=>{
+    for(const id of newIds){
+      const t = state.tracks.find(x => x.id === id);
+      if(t) await autoFetchLyrics(t);
+    }
+  })();
 }
 
 async function handleZipSelected(file){
@@ -2172,12 +2293,12 @@ function renderSettings(){
     <div class="topbar">${backHomeBtn()}<div style="width:42px;"></div></div>
     <div class="home-hero"><h1 style="font-size:24px;">Library & Stats</h1></div>
     <div class="settings-list">
-      <div class="settings-row"><span class="label">Songs</span><span class="value">${totalTracks}</span></div>
-      <div class="settings-row"><span class="label">Playlists</span><span class="value">${totalPlaylists}</span></div>
-      <div class="settings-row"><span class="label">Library duration</span><span class="value">${h}h ${m}m</span></div>
-      <div class="settings-row"><span class="label">Total plays</span><span class="value">${totalPlays}</span></div>
-      <div class="settings-row"><span class="label">Songs played</span><span class="value">${tracksPlayed} / ${totalTracks}</span></div>
-      <div class="settings-row"><span class="label">Playback volume</span><span class="value">${Math.round(state.volume*100)}%</span></div>
+      <div class="settings-row"><span class="s-label">Songs</span><span class="value">${totalTracks}</span></div>
+      <div class="settings-row"><span class="s-label">Playlists</span><span class="value">${totalPlaylists}</span></div>
+      <div class="settings-row"><span class="s-label">Library duration</span><span class="value">${h}h ${m}m</span></div>
+      <div class="settings-row"><span class="s-label">Total plays</span><span class="value">${totalPlays}</span></div>
+      <div class="settings-row"><span class="s-label">Songs played</span><span class="value">${tracksPlayed} / ${totalTracks}</span></div>
+      <div class="settings-row"><span class="s-label">Playback volume</span><span class="value">${Math.round(state.volume*100)}%</span></div>
     </div>
     ${mostPlayed.length ? `
       <div class="section" style="padding-top:6px;">
@@ -2193,7 +2314,15 @@ function renderSettings(){
         <button class="bg-mode-btn ${state.background.mode==='scenery'?'active':''}" data-action="set-bg-mode" data-mode="scenery">${ICONS.disc}<span>Animated</span></button>
         <button class="bg-mode-btn ${state.background.mode==='solid'?'active':''}" data-action="set-bg-mode" data-mode="solid"><span class="bg-mode-swatch" style="background:${escapeHtml(state.background.color)};"></span><span>Solid Color</span></button>
         <button class="bg-mode-btn ${state.background.mode==='photo'?'active':''}" data-action="set-bg-mode" data-mode="photo">${ICONS.image}<span>Photo</span></button>
+        <button class="bg-mode-btn ${state.background.mode==='stock'?'active':''}" data-action="set-bg-mode" data-mode="stock">${ICONS.disc}<span>Stocked Backgrounds</span></button>
       </div>
+      ${state.background.mode === 'stock' && window.__spindleBg ? `
+        <div class="stock-grid">
+          ${window.__spindleBg.stock.map(it => `
+            <button class="stock-item ${window.__spindleBg.getStockId()===it.id?'active':''}" data-action="set-bg-stock" data-id="${it.id}" style="background-image:url('${it.thumb}');" aria-label="${escapeHtml(it.label)}"><span>${escapeHtml(it.label)}</span></button>
+          `).join('')}
+        </div>
+      ` : ''}
       ${state.background.mode === 'solid' ? `
         <div class="bg-color-row">
           <input type="color" data-action="bg-color-input" value="${escapeHtml(state.background.color)}">
@@ -2259,7 +2388,7 @@ function render(){
   else if(state.view === 'settings') html = renderSettings();
   else if(state.view === 'search') html = renderSearch();
   html += renderMiniPlayer();
-  app.innerHTML = `<div class="fade-in">${html}</div>`;
+  app.innerHTML = `<div>${html}</div>`;
   updateProgressUI();
   const seekEl = document.getElementById('seek-range');
   if(seekEl){
@@ -2472,6 +2601,7 @@ document.addEventListener('click', async (e)=>{
       state.showLyrics = !state.showLyrics;
       render();
       updateLyricsUI();
+      if(state.showLyrics){ const t = getCurrentPlayingTrack(); if(t) autoFetchLyrics(t); }
       break;
     case 'trigger-lrc-upload': document.getElementById('file-input-lrc').click(); break;
     case 'find-lyrics-online': {
@@ -2521,6 +2651,16 @@ document.addEventListener('click', async (e)=>{
         window.__spindleBg.setMode(mode, state.background.color);
         if(mode === 'photo' && state.background.photoObjectURL) window.__spindleBg.setPhotoUrl(state.background.photoObjectURL);
       }
+      render();
+      break;
+    }
+    case 'set-bg-stock': {
+      const id = el.dataset.id;
+      if(!id || !window.__spindleBg) break;
+      state.background.mode = 'stock';
+      try{ localStorage.setItem('spindle-bg-mode', 'stock'); }catch(err){}
+      window.__spindleBg.setMode('stock', state.background.color);
+      window.__spindleBg.setStock(id);
       render();
       break;
     }

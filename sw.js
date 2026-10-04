@@ -14,7 +14,7 @@
  * simply inert \u2014 it changes nothing and breaks nothing.
  */
 
-const CACHE_NAME = 'spindle-cache-v1';
+const CACHE_NAME = 'spindle-cache-v4';
 
 // Bump this whenever CORE_ASSETS changes, so old caches get cleaned up on the next visit.
 const CORE_ASSETS = [
@@ -24,6 +24,22 @@ const CORE_ASSETS = [
   './icon-192.png',
   './icon-512.png',
   './icon-512-maskable.png',
+  './fonts/ClashDisplay-Variable.woff2',
+  './fonts/Satoshi-Regular.woff2',
+  './fonts/Satoshi-Bold.woff2',
+  './fonts/Manrope-Bold.woff2',
+  './media/bg-nature.mp4',
+  './media/bg-edit.mp4',
+  './media/bg-yotei.mp4',
+  './media/bg-loop-a.mp4',
+  './media/bg-loop-b.mp4',
+  './media/bg-art.jpg',
+  './media/thumb-nature.jpg',
+  './media/thumb-edit.jpg',
+  './media/thumb-yotei.jpg',
+  './media/thumb-loop-a.jpg',
+  './media/thumb-loop-b.jpg',
+  './media/thumb-art.jpg',
 ];
 
 self.addEventListener('install', (event) => {
@@ -51,6 +67,31 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const req = event.request;
   if(req.method !== 'GET') return; // never intercept uploads/writes, only cache reads
+  if(new URL(req.url).hostname === 'lrclib.net') return; // lyrics lookups always go straight to the network, never cached
+
+  // Video playback asks for byte ranges (needed for looping/seeking). A cached full
+  // response has to be sliced into a proper 206 reply or the video can fail to loop.
+  if(req.headers.has('range')){
+    event.respondWith(
+      caches.match(req.url).then((cached) => cached || fetch(req.url)).then(async (res) => {
+        if(!res || !res.ok) return res;
+        const buf = await res.clone().arrayBuffer();
+        const m = /bytes=(\d*)-(\d*)/.exec(req.headers.get('range')) || [];
+        const start = m[1] ? parseInt(m[1], 10) : 0;
+        const end = m[2] ? Math.min(parseInt(m[2], 10), buf.byteLength - 1) : buf.byteLength - 1;
+        return new Response(buf.slice(start, end + 1), {
+          status: 206,
+          statusText: 'Partial Content',
+          headers: {
+            'Content-Type': res.headers.get('Content-Type') || 'video/mp4',
+            'Content-Range': 'bytes ' + start + '-' + end + '/' + buf.byteLength,
+            'Content-Length': String(end - start + 1),
+          },
+        });
+      }).catch(() => new Response('', { status: 503, statusText: 'Offline' }))
+    );
+    return;
+  }
 
   event.respondWith(
     caches.match(req).then((cached) => {
