@@ -14,7 +14,7 @@
  * simply inert \u2014 it changes nothing and breaks nothing.
  */
 
-const CACHE_NAME = 'spindle-cache-v4';
+const CACHE_NAME = 'spindle-cache-v5';
 
 // Bump this whenever CORE_ASSETS changes, so old caches get cleaned up on the next visit.
 const CORE_ASSETS = [
@@ -40,6 +40,10 @@ const CORE_ASSETS = [
   './media/thumb-loop-a.jpg',
   './media/thumb-loop-b.jpg',
   './media/thumb-art.jpg',
+  './media/card-all.jpg',
+  './media/card-recent.jpg',
+  './media/card-top25.jpg',
+  './media/card-added.jpg',
 ];
 
 self.addEventListener('install', (event) => {

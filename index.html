@@ -54,7 +54,7 @@
     min-height:100vh;
     overflow-x:hidden;
   }
-  h1,h2,h3,.serif,.track-meta strong,.mini-meta strong,.tp-meta strong,.playlist-card .pinfo strong,.all-songs-card .meta strong{ font-family:var(--font-display); letter-spacing:-0.02em; }
+  h1,h2,h3,.serif,.track-meta strong,.mini-meta strong,.tp-meta strong,.playlist-card .pinfo strong,.all-songs-card .meta strong{ font-family:var(--font-display); letter-spacing:-0.02em; word-spacing:0.14em; }
   h1,h2,h3{ font-weight:600; }
   ::selection{ background:var(--brass-glow); }
   button{ font-family:inherit; cursor:pointer; }
@@ -90,6 +90,7 @@
   .bg-scene{ position:absolute; inset:0; opacity:0; transition:opacity 3.2s ease; overflow:hidden; }
   .bg-scene.active{ opacity:1; }
   #bg-stock{ position:fixed; inset:0; z-index:0; background:#000 center/cover no-repeat; overflow:hidden; display:none; }
+  #bg-custom video{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:none; pointer-events:none; }
   #bg-stock video{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:none; pointer-events:none; }
   html[data-bg="stock"] #bg-scrim{ background:linear-gradient(180deg, rgba(5,6,10,0.42) 0%, rgba(5,6,10,0.50) 35%, rgba(5,6,10,0.66) 70%, rgba(5,6,10,0.82) 100%); }
   #bg-custom{ position:fixed; inset:0; z-index:0; background-color:var(--bg); background-size:cover; background-position:center; }
@@ -281,6 +282,7 @@
   .section-head .count{ color:var(--text-faint); font-size:13px; }
 
   .all-songs-card{
+    color:var(--text); text-align:left;
     display:flex; align-items:center; gap:14px; padding:16px; border-radius:var(--r-md);
     background:var(--panel); border:1px solid var(--border);
     backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px);
@@ -288,7 +290,7 @@
   .all-songs-card:active{ background:var(--panel-strong); }
   .all-songs-art{
     width:56px; height:56px; border-radius:12px; flex-shrink:0;
-    background:linear-gradient(135deg, var(--indigo), #3a3390);
+    background:#1a1730 center/cover no-repeat;
     display:flex; align-items:center; justify-content:center;
   }
   .all-songs-art svg{ width:26px; height:26px; color:rgba(255,255,255,0.9); }
@@ -669,7 +671,7 @@
     <div class="wet-ground"></div>
   </div>
 </div>
-<div id="bg-custom" style="display:none;"></div>
+<div id="bg-custom" style="display:none;"><video id="bg-custom-video" muted loop playsinline preload="auto" disablepictureinpicture></video></div>
 <div id="bg-stock"><video id="bg-stock-video" muted loop playsinline preload="auto" disablepictureinpicture></video></div>
 <div id="bg-scrim"></div>
 
@@ -678,7 +680,7 @@
 <div id="modal-root"></div>
 <input type="file" id="file-input-audio" class="hidden-input" accept=".mp3,audio/mpeg" multiple>
 <input type="file" id="file-input-cover" class="hidden-input" accept="image/*">
-<input type="file" id="file-input-bg-photo" class="hidden-input" accept="image/*">
+<input type="file" id="file-input-bg-photo" class="hidden-input" accept="image/*,video/*">
 <input type="file" id="file-input-zip" class="hidden-input" accept=".zip,application/zip,application/x-zip-compressed">
 <input type="file" id="file-input-folder" class="hidden-input" webkitdirectory directory multiple>
 <input type="file" id="file-input-lrc" class="hidden-input" accept=".lrc,text/plain">
@@ -762,6 +764,7 @@
 
   function setMode(mode, color){
     if(mode !== 'stock') leaveStock();
+    if(mode !== 'photo') stopCustomVideo();
     if(mode === 'stock'){
       stopCycle();
       bgRoot.style.display = 'none';
@@ -785,9 +788,31 @@
       // 'photo' mode: backgroundImage is set separately via setPhotoUrl once the stored blob loads
     }
   }
-  function setPhotoUrl(url){
-    customBg.style.backgroundImage = url ? 'url("' + url + '")' : 'none';
+  var customVideo = document.getElementById('bg-custom-video');
+  var customVideoOn = false;
+  function stopCustomVideo(){
+    customVideoOn = false;
+    customVideo.pause();
+    customVideo.removeAttribute('src'); customVideo.load();
+    customVideo.style.display = 'none';
   }
+  function setPhotoUrl(url, isVideo){
+    if(isVideo && url){
+      customBg.style.backgroundImage = 'none';
+      customVideoOn = true;
+      customVideo.src = url; customVideo.muted = true;
+      customVideo.style.display = 'block';
+      if(!document.hidden){ var p = customVideo.play(); if(p && p.catch) p.catch(function(){}); }
+    } else {
+      stopCustomVideo();
+      customBg.style.backgroundImage = url ? 'url("' + url + '")' : 'none';
+    }
+  }
+  document.addEventListener('visibilitychange', function(){
+    if(!customVideoOn) return;
+    if(document.hidden) customVideo.pause();
+    else { var p = customVideo.play(); if(p && p.catch) p.catch(function(){}); }
+  });
 
   var initialMode = 'scenery', initialColor = '#1a1025';
   try{
@@ -931,7 +956,7 @@ const state = {
   currentObjectURL: null,
   pendingUploadPlaylistId: null,
   scrubbing: false,
-  background: { mode: 'scenery', color: '#1a1025', photoObjectURL: null },
+  background: { mode: 'scenery', color: '#1a1025', photoObjectURL: null, photoIsVideo: false },
   search: '',
   sortBy: 'default',        // default | recent | plays | alpha | duration
   eq: { enabled: false, preset: 'flat', bands: [0,0,0,0,0] }, // gain in dB per band: 60/230/910/3.6k/14k
@@ -1967,7 +1992,7 @@ function renderHome(){
     <div class="section">
       <div class="section-head"><h2>Your Library</h2></div>
       <button class="all-songs-card" data-action="nav-playlist" data-id="all" style="width:100%;">
-        <div class="all-songs-art">${ICONS.disc}</div>
+        <div class="all-songs-art" style="background-image:url('./media/card-all.jpg');"></div>
         <div class="meta">
           <strong>All Songs</strong>
           <span>${state.tracks.length} track${state.tracks.length===1?'':'s'}</span>
@@ -1975,7 +2000,7 @@ function renderHome(){
       </button>
       ${recentIds.length ? `
         <button class="all-songs-card" data-action="nav-playlist" data-id="recent" style="width:100%;margin-top:10px;">
-          <div class="all-songs-art" style="background:linear-gradient(135deg, var(--brass), #8a6f3f);">${ICONS.history}</div>
+          <div class="all-songs-art" style="background-image:url('./media/card-recent.jpg');"></div>
           <div class="meta">
             <strong>Recently Played</strong>
             <span>${recentIds.length} track${recentIds.length===1?'':'s'}</span>
@@ -1984,7 +2009,7 @@ function renderHome(){
       ` : ''}
       ${top25Ids.length ? `
         <button class="all-songs-card" data-action="nav-playlist" data-id="top25" style="width:100%;margin-top:10px;">
-          <div class="all-songs-art" style="background:linear-gradient(135deg, #7d6cd8, #4a3d99);">${ICONS.sparkle}</div>
+          <div class="all-songs-art" style="background-image:url('./media/card-top25.jpg');"></div>
           <div class="meta">
             <strong>Top 25 Most Played</strong>
             <span>${top25Ids.length} track${top25Ids.length===1?'':'s'}</span>
@@ -1993,7 +2018,7 @@ function renderHome(){
       ` : ''}
       ${hasContent ? `
         <button class="all-songs-card" data-action="nav-playlist" data-id="recently-added" style="width:100%;margin-top:10px;">
-          <div class="all-songs-art" style="background:linear-gradient(135deg, #4bc0a0, #2c7c66);">${ICONS.sparkle}</div>
+          <div class="all-songs-art" style="background-image:url('./media/card-added.jpg');"></div>
           <div class="meta">
             <strong>Recently Added</strong>
             <span>${Math.min(25, state.tracks.length)} track${Math.min(25, state.tracks.length)===1?'':'s'}</span>
@@ -2313,7 +2338,7 @@ function renderSettings(){
       <div class="bg-mode-row">
         <button class="bg-mode-btn ${state.background.mode==='scenery'?'active':''}" data-action="set-bg-mode" data-mode="scenery">${ICONS.disc}<span>Animated</span></button>
         <button class="bg-mode-btn ${state.background.mode==='solid'?'active':''}" data-action="set-bg-mode" data-mode="solid"><span class="bg-mode-swatch" style="background:${escapeHtml(state.background.color)};"></span><span>Solid Color</span></button>
-        <button class="bg-mode-btn ${state.background.mode==='photo'?'active':''}" data-action="set-bg-mode" data-mode="photo">${ICONS.image}<span>Photo</span></button>
+        <button class="bg-mode-btn ${state.background.mode==='photo'?'active':''}" data-action="set-bg-mode" data-mode="photo">${ICONS.image}<span>Photo / Video</span></button>
         <button class="bg-mode-btn ${state.background.mode==='stock'?'active':''}" data-action="set-bg-mode" data-mode="stock">${ICONS.disc}<span>Stocked Backgrounds</span></button>
       </div>
       ${state.background.mode === 'stock' && window.__spindleBg ? `
@@ -2330,7 +2355,7 @@ function renderSettings(){
         </div>
       ` : ''}
       ${state.background.mode === 'photo' ? `
-        <button class="pill-btn" style="width:100%;margin-top:12px;" data-action="trigger-bg-photo-upload">${ICONS.image}<span>${state.background.photoObjectURL ? 'Change Photo' : 'Choose Photo'}</span></button>
+        <button class="pill-btn" style="width:100%;margin-top:12px;" data-action="trigger-bg-photo-upload">${ICONS.image}<span>${state.background.photoObjectURL ? (state.background.photoIsVideo ? 'Change Video or Photo' : 'Change Photo or Video') : 'Choose Photo or Video'}</span></button>
       ` : ''}
     </div>
     <div style="padding:20px 20px 0;">
@@ -2649,7 +2674,7 @@ document.addEventListener('click', async (e)=>{
       try{ localStorage.setItem('spindle-bg-mode', mode); }catch(err){}
       if(window.__spindleBg){
         window.__spindleBg.setMode(mode, state.background.color);
-        if(mode === 'photo' && state.background.photoObjectURL) window.__spindleBg.setPhotoUrl(state.background.photoObjectURL);
+        if(mode === 'photo' && state.background.photoObjectURL) window.__spindleBg.setPhotoUrl(state.background.photoObjectURL, state.background.photoIsVideo);
       }
       render();
       break;
@@ -2889,21 +2914,27 @@ document.getElementById('file-input-bg-photo').addEventListener('change', async 
   e.target.value = '';
   if(!file) return;
   try{
-    await idbPut('settings', { id:'bgPhoto', blob:file });
+    const isVideo = /^video\//.test(file.type) || /\.(mp4|webm|mov|m4v)$/i.test(file.name);
+    if(!isVideo && !/^image\//.test(file.type) && !/\.(jpe?g|png|webp|gif|jfif|avif)$/i.test(file.name)){
+      showToast('Please pick a photo or a video.');
+      return;
+    }
+    await idbPut('settings', { id:'bgPhoto', blob:file, isVideo:isVideo });
     if(state.background.photoObjectURL) URL.revokeObjectURL(state.background.photoObjectURL);
     const url = URL.createObjectURL(file);
     state.background.photoObjectURL = url;
+    state.background.photoIsVideo = isVideo;
     state.background.mode = 'photo';
     try{ localStorage.setItem('spindle-bg-mode', 'photo'); }catch(err){}
     if(window.__spindleBg){
       window.__spindleBg.setMode('photo', state.background.color);
-      window.__spindleBg.setPhotoUrl(url);
+      window.__spindleBg.setPhotoUrl(url, isVideo);
     }
-    showToast('Background photo updated.');
+    showToast(isVideo ? 'Background video updated.' : 'Background photo updated.');
     render();
   }catch(err){
     console.error(err);
-    showToast('Could not save that photo.');
+    showToast('Could not save that file.');
   }
 });
 document.getElementById('file-input-zip').addEventListener('change', (e)=>{
@@ -2912,10 +2943,9 @@ document.getElementById('file-input-zip').addEventListener('change', (e)=>{
   if(file) handleZipSelected(file);
 });
 document.getElementById('file-input-folder').addEventListener('change', (e)=>{
-  const files = e.target.files;
-  const hasFiles = files && files.length;
+  const files = Array.from(e.target.files || []); // copy first: clearing the input empties the live FileList
   e.target.value = '';
-  if(hasFiles) handleFolderSelected(files);
+  if(files.length) handleFolderSelected(files);
 });
 document.getElementById('file-input-lrc').addEventListener('change', async (e)=>{
   const file = e.target.files[0];
@@ -3016,8 +3046,9 @@ async function init(){
     if(saved && saved.blob){
       const url = URL.createObjectURL(saved.blob);
       state.background.photoObjectURL = url;
+      state.background.photoIsVideo = !!saved.isVideo || /^video\//.test(saved.blob.type || '');
       if(state.background.mode === 'photo' && window.__spindleBg){
-        window.__spindleBg.setPhotoUrl(url);
+        window.__spindleBg.setPhotoUrl(url, state.background.photoIsVideo);
       }
     } else if(state.background.mode === 'photo'){
       // Mode says photo but nothing is stored (shouldn't normally happen) — fall back safely.
