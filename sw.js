@@ -2,10 +2,9 @@
  * Spindle service worker.
  *
  * Strategy: Cache-First for everything. On install, we try to precache the
- * app shell (the HTML page, manifest, and icons). Anything else \u2014 including
- * the Google Fonts / jsmediatags / JSZip CDN requests \u2014 gets cached the
- * first time it's successfully fetched, then served from cache on every
- * later request, network permitting or not.
+ * app shell (the HTML page, manifest, and icons). Anything else from this same site (fonts, media, libraries in /vendor) gets cached the
+ * first time it's successfully fetched, then served from cache on every later request,
+ * network permitting or not. Cross-site requests are never touched or cached.
  *
  * NOTE: this file only has any effect once Spindle is served over http(s)
  * (e.g. GitHub Pages, Netlify, or any real web server). Browsers refuse to
@@ -14,13 +13,15 @@
  * simply inert \u2014 it changes nothing and breaks nothing.
  */
 
-const CACHE_NAME = 'spindle-cache-v5';
+const CACHE_NAME = 'spindle-cache-v10';
 
 // Bump this whenever CORE_ASSETS changes, so old caches get cleaned up on the next visit.
 const CORE_ASSETS = [
   './',
   './index.html',
   './manifest.json',
+  './vendor/jszip.min.js',
+  './vendor/jsmediatags.min.js',
   './icon-192.png',
   './icon-512.png',
   './icon-512-maskable.png',
@@ -71,7 +72,9 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const req = event.request;
   if(req.method !== 'GET') return; // never intercept uploads/writes, only cache reads
-  if(new URL(req.url).hostname === 'lrclib.net') return; // lyrics lookups always go straight to the network, never cached
+  // Only this site's own files are ever cached. Anything cross-site (e.g. the lyrics lookup) goes
+  // straight to the network and is never stored, so nothing outside can end up in the cache.
+  if(new URL(req.url).origin !== self.location.origin) return;
 
   // Video playback asks for byte ranges (needed for looping/seeking). A cached full
   // response has to be sliced into a proper 206 reply or the video can fail to loop.

@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0">
 <title>Spindle — MP3 Player</title>
 <meta name="theme-color" content="#0A0C10">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; media-src 'self' blob: data:; font-src 'self'; connect-src 'self' https://lrclib.net https://itunes.apple.com https://*.mzstatic.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
 <link rel="manifest" href="./manifest.json">
 <link rel="icon" href="./icon-192.png" sizes="192x192" type="image/png">
 <link rel="apple-touch-icon" href="./icon-512.png">
@@ -28,6 +30,9 @@
     --brass:#C9A15A;
     --brass-soft:#7d6535;
     --brass-glow:rgba(201,161,90,0.35);
+    --brass-rgb:201,161,90;
+    --brass-deep:#8a6f3f;
+    --on-brass:#221a0d;
     --indigo:#6B5CE0;
     --text:#F2EFE9;
     --text-dim:#9A9CA6;
@@ -45,7 +50,7 @@
     margin:0;
     background:
       radial-gradient(1100px 700px at 15% -10%, rgba(107,92,224,0.16), transparent 60%),
-      radial-gradient(900px 600px at 110% 10%, rgba(201,161,90,0.10), transparent 55%),
+      radial-gradient(900px 600px at 110% 10%, rgba(var(--brass-rgb),0.10), transparent 55%),
       var(--bg);
     color:var(--text);
     font-family:var(--font-body);
@@ -256,7 +261,7 @@
   }
   .icon-btn:active{ transform:scale(0.94); background:var(--panel-strong); }
   .icon-btn svg{ width:19px; height:19px; }
-  .icon-btn.on{ color:var(--brass); border-color:var(--brass-soft); background:rgba(201,164,92,0.12); }
+  .icon-btn.on{ color:var(--brass); border-color:var(--brass-soft); background:rgba(var(--brass-rgb),0.12); }
 
   /* ---------- Home ---------- */
   .home-hero{ padding:6px 22px 4px; }
@@ -273,7 +278,7 @@
     transition:transform .1s ease, background .15s ease;
   }
   .pill-btn:active{ transform:scale(0.97); }
-  .pill-btn.primary{ background:linear-gradient(135deg, rgba(201,161,90,0.22), rgba(201,161,90,0.08)); border-color:rgba(201,161,90,0.35); }
+  .pill-btn.primary{ background:linear-gradient(135deg, rgba(var(--brass-rgb),0.22), rgba(var(--brass-rgb),0.08)); border-color:rgba(var(--brass-rgb),0.35); }
   .pill-btn svg{ width:17px; height:17px; }
 
   .section{ padding:26px 20px 4px; }
@@ -323,14 +328,14 @@
   .pl-title-wrap .sub{ color:var(--text-dim); font-size:13.5px; }
 
   .pl-actions{ display:flex; gap:10px; padding:16px 20px 4px; }
-  .round-play-btn{ width:52px; height:52px; border-radius:50%; background:var(--brass); color:#221a0d; display:flex; align-items:center; justify-content:center; border:none; box-shadow:0 10px 30px -8px var(--brass-glow); flex-shrink:0; }
+  .round-play-btn{ width:52px; height:52px; border-radius:50%; background:var(--brass); color:var(--on-brass); display:flex; align-items:center; justify-content:center; border:none; box-shadow:0 10px 30px -8px var(--brass-glow); flex-shrink:0; }
   .round-play-btn svg{ width:22px; height:22px; }
   .round-play-btn:active{ transform:scale(0.94); }
 
   .track-list{ padding:18px 12px 4px; }
   .track-row{ display:flex; align-items:center; gap:12px; padding:10px 8px; border-radius:14px; }
   .track-row:active{ background:var(--panel); }
-  .track-row.active-track{ background:rgba(201,161,90,0.10); }
+  .track-row.active-track{ background:rgba(var(--brass-rgb),0.10); }
   .track-num{ width:22px; text-align:center; color:var(--text-faint); font-size:13px; font-variant-numeric:tabular-nums; flex-shrink:0; }
   .track-num .eq{ display:inline-flex; gap:2px; align-items:flex-end; height:13px; }
   .track-num .eq span{ width:2.5px; background:var(--brass); border-radius:1px; animation:eqbounce 1s ease-in-out infinite; }
@@ -413,7 +418,7 @@
   .label{
     width:38%; height:38%; border-radius:50%; overflow:hidden;
     display:flex; align-items:center; justify-content:center;
-    background:linear-gradient(135deg, var(--brass), #8a6f3f);
+    background:linear-gradient(135deg, var(--brass), var(--brass-deep));
     box-shadow:0 0 0 3px rgba(0,0,0,0.5), inset 0 0 20px rgba(0,0,0,0.25);
   }
   .label img{ width:100%; height:100%; object-fit:cover; }
@@ -425,7 +430,14 @@
   .np-title p{ margin:0; color:var(--text-dim); font-size:14.5px; }
 
   .visualizer{ display:flex; align-items:flex-end; justify-content:center; gap:3px; height:34px; margin:18px 0 0; padding:0 26px; }
-  .visualizer span{ flex:1; max-width:5px; background:linear-gradient(180deg, var(--brass), rgba(201,161,90,0.2)); border-radius:2px 2px 0 0; height:4px; transition:height .09s linear; }
+  .visualizer.fake span{ transition:none; animation:vizbounce 0.8s ease-in-out infinite alternate; }
+  .visualizer.fake.idle span{ animation-play-state:paused; height:4px; }
+  .visualizer.fake span:nth-child(4n+1){ animation-duration:.62s; animation-delay:-.10s; }
+  .visualizer.fake span:nth-child(4n+2){ animation-duration:.95s; animation-delay:-.45s; }
+  .visualizer.fake span:nth-child(4n+3){ animation-duration:.74s; animation-delay:-.30s; }
+  .visualizer.fake span:nth-child(4n){ animation-duration:1.1s; animation-delay:-.65s; }
+  @keyframes vizbounce{ from{ height:4px; } to{ height:30px; } }
+  .visualizer span{ flex:1; max-width:5px; background:linear-gradient(180deg, var(--brass), rgba(var(--brass-rgb),0.2)); border-radius:2px 2px 0 0; height:4px; transition:height .09s linear; }
   .np-seek{ padding:14px 26px 4px; }
   .seek-row{ display:flex; align-items:center; gap:10px; }
   .time-label{ font-size:11.5px; color:var(--text-faint); font-variant-numeric:tabular-nums; width:36px; flex-shrink:0; }
@@ -449,7 +461,7 @@
   .ctrl-btn.skip svg{ width:25px; height:25px; }
   .ctrl-btn.skip{ color:var(--text); }
   .ctrl-btn.skip:active{ transform:scale(0.9); }
-  .np-play-btn{ width:70px; height:70px; border-radius:50%; background:var(--brass); color:#221a0d; display:flex; align-items:center; justify-content:center; box-shadow:0 15px 40px -10px var(--brass-glow); flex-shrink:0; }
+  .np-play-btn{ width:70px; height:70px; border-radius:50%; background:var(--brass); color:var(--on-brass); display:flex; align-items:center; justify-content:center; box-shadow:0 15px 40px -10px var(--brass-glow); flex-shrink:0; }
   .np-play-btn svg{ width:28px; height:28px; }
   .np-play-btn:active{ transform:scale(0.95); }
 
@@ -471,7 +483,49 @@
     background:var(--panel); color:var(--text-dim); font-size:11.5px; font-weight:600;
   }
   .bg-mode-btn svg{ width:20px; height:20px; }
-  .bg-mode-btn.active{ border-color:var(--brass-soft); color:var(--brass); background:rgba(201,164,92,0.12); }
+  .bg-mode-btn.active{ border-color:var(--brass-soft); color:var(--brass); background:rgba(var(--brass-rgb),0.12); }
+  .match-row{ display:flex; align-items:center; gap:12px; width:100%; padding:10px; margin-bottom:8px; border-radius:14px; background:var(--panel); border:1px solid var(--border); color:var(--text); text-align:left; }
+  .match-row img, .match-row .match-thumb{ width:44px; height:44px; border-radius:10px; object-fit:cover; flex-shrink:0; background:linear-gradient(135deg,#22252e,#14161c); display:flex; align-items:center; justify-content:center; }
+  .match-row .match-thumb svg{ width:20px; height:20px; color:var(--text-faint); }
+  .match-text{ flex:1; min-width:0; display:block; }
+  .match-text strong{ display:block; font-size:14px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .match-text span{ display:block; font-size:12px; color:var(--text-faint); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:2px; }
+  .q-row{ display:flex; align-items:center; gap:8px; padding:10px 8px; border-radius:14px; }
+  .q-row[data-action]{ cursor:pointer; }
+  .q-row.active-track{ background:rgba(var(--brass-rgb),0.10); }
+  .q-row .track-meta{ flex:1; min-width:0; }
+  .q-btn{ width:36px; height:36px; border-radius:10px; display:flex; align-items:center; justify-content:center; background:var(--panel); border:1px solid var(--border); color:var(--text-dim); flex-shrink:0; }
+  .q-btn svg{ width:16px; height:16px; }
+  .q-btn:disabled{ opacity:0.3; }
+  .lyrics-tools{ display:flex; align-items:center; gap:8px; margin-bottom:6px; }
+  .mini-pill{ display:inline-flex; align-items:center; gap:6px; padding:7px 12px; border-radius:999px; background:var(--panel); border:1px solid var(--border); color:var(--text-dim); font-size:12.5px; font-weight:600; }
+  .mini-pill svg{ width:14px; height:14px; }
+  .lyrics-line[data-time]{ cursor:pointer; }
+  .lyrics-panel.lyrics-s .lyrics-line{ font-size:14px; }
+  .lyrics-panel.lyrics-l .lyrics-line{ font-size:21px; }
+  .accent-row{ display:flex; flex-wrap:wrap; gap:12px; }
+  .accent-swatch{ position:relative; width:38px; height:38px; border-radius:50%; border:2px solid transparent; box-shadow:0 0 0 1px var(--border); padding:0; display:block; overflow:hidden; }
+  .accent-swatch.active{ border-color:var(--text); box-shadow:0 0 0 2px var(--bg), 0 0 0 4px var(--brass); }
+  .accent-swatch.custom{ background:conic-gradient(#f66,#fc6,#6f6,#6cf,#96f,#f6c,#f66); }
+  .accent-swatch.custom input{ position:absolute; inset:0; width:100%; height:100%; opacity:0; cursor:pointer; }
+  .pill-btn:disabled{ opacity:0.45; }
+  .np-seek{ position:relative; }
+  .seek-bubble{ position:absolute; top:-18px; transform:translateX(-50%); padding:4px 10px; border-radius:10px; background:rgba(18,20,26,0.94); border:1px solid var(--border); font-size:12.5px; font-weight:700; color:var(--text); pointer-events:none; opacity:0; transition:opacity .12s; font-variant-numeric:tabular-nums; z-index:3; }
+  .seek-bubble.show{ opacity:1; }
+  .mini-player-inner{ touch-action:pan-y; }
+  .mini-player-inner.snap{ transition:transform .2s ease, opacity .2s ease; }
+  .guide-item{ border:1px solid var(--border); background:var(--panel); border-radius:16px; margin-bottom:10px; overflow:hidden; }
+  .guide-item summary{ list-style:none; cursor:pointer; padding:15px 16px; font-weight:700; font-size:15px; display:flex; align-items:center; justify-content:space-between; gap:10px; }
+  .guide-item summary::-webkit-details-marker{ display:none; }
+  .guide-item summary::after{ content:'+'; font-size:20px; font-weight:500; color:var(--brass); line-height:1; }
+  .guide-item[open] summary::after{ content:'\2212'; }
+  .guide-body{ padding:0 16px 14px; font-size:13.5px; line-height:1.55; color:var(--text-dim); }
+  .guide-body ul, .legal ul{ margin:0; padding-left:18px; }
+  .guide-body li, .legal li{ margin:7px 0; }
+  .guide-body b, .legal b{ color:var(--text); font-weight:700; }
+  .legal{ font-size:13.5px; line-height:1.6; color:var(--text-dim); }
+  .legal h3{ font-size:16px; margin:22px 0 8px; color:var(--text); }
+  .legal p{ margin:8px 0; }
   .stock-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:12px; }
   .stock-item{ position:relative; aspect-ratio:9/14; border-radius:14px; overflow:hidden; border:2px solid var(--border); padding:0; background:#111 center/cover no-repeat; color:#fff; }
   .stock-item.active{ border-color:var(--brass); box-shadow:0 0 0 2px var(--brass-glow); }
@@ -482,13 +536,13 @@
 
   .toggle-pill{ position:relative; width:46px; height:26px; border-radius:999px; background:var(--panel-strong); border:1px solid var(--border); flex-shrink:0; }
   .toggle-pill .knob{ position:absolute; top:2px; left:2px; width:20px; height:20px; border-radius:50%; background:var(--text-faint); transition:transform .18s ease, background .18s ease; }
-  .toggle-pill.on{ background:rgba(201,164,92,0.3); border-color:var(--brass-soft); }
+  .toggle-pill.on{ background:rgba(var(--brass-rgb),0.3); border-color:var(--brass-soft); }
   .toggle-pill.on .knob{ transform:translateX(20px); background:var(--brass); }
 
   .eq-enable-row{ display:flex; align-items:center; justify-content:space-between; padding:4px 0 16px; font-size:14.5px; font-weight:600; color:var(--text); }
   .eq-preset-row{ display:flex; gap:8px; margin-bottom:18px; }
   .eq-preset-btn{ flex:1; padding:9px 6px; border-radius:10px; background:var(--panel); border:1px solid var(--border); color:var(--text-dim); font-size:12.5px; font-weight:600; }
-  .eq-preset-btn.active{ border-color:var(--brass-soft); color:var(--brass); background:rgba(201,164,92,0.12); }
+  .eq-preset-btn.active{ border-color:var(--brass-soft); color:var(--brass); background:rgba(var(--brass-rgb),0.12); }
   .eq-bands{ display:flex; flex-direction:column; gap:14px; }
   .eq-band-row{ display:flex; align-items:center; gap:12px; }
   .eq-freq-label{ width:48px; flex-shrink:0; font-size:12.5px; color:var(--text-faint); font-variant-numeric:tabular-nums; }
@@ -530,13 +584,13 @@
   .upload-img-btn{ padding:10px 14px; border-radius:10px; background:var(--panel); border:1px solid var(--border); font-size:13px; font-weight:600; color:var(--text); }
   .modal-btn-row{ display:flex; gap:10px; margin-top:6px; }
   .modal-btn{ flex:1; padding:14px; border-radius:14px; font-weight:600; font-size:14.5px; border:1px solid var(--border); background:var(--panel); color:var(--text); }
-  .modal-btn.primary{ background:var(--brass); color:#221a0d; border:none; }
+  .modal-btn.primary{ background:var(--brass); color:var(--on-brass); border:none; }
   .modal-btn:active{ transform:scale(0.97); }
 
   .track-pick-row{ display:flex; align-items:center; gap:12px; padding:10px 4px; }
   .track-pick-row .checkbox{ width:20px; height:20px; border-radius:6px; border:1.5px solid var(--border); flex-shrink:0; display:flex; align-items:center; justify-content:center; }
   .track-pick-row.checked .checkbox{ background:var(--brass); border-color:var(--brass); }
-  .track-pick-row.checked .checkbox svg{ width:13px; height:13px; color:#221a0d; }
+  .track-pick-row.checked .checkbox svg{ width:13px; height:13px; color:var(--on-brass); }
   .track-pick-row .tp-meta{ flex:1; min-width:0; }
   .track-pick-row .tp-meta strong{ display:block; font-size:14px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .track-pick-row .tp-meta span{ font-size:12px; color:var(--text-faint); }
@@ -684,6 +738,8 @@
 <input type="file" id="file-input-zip" class="hidden-input" accept=".zip,application/zip,application/x-zip-compressed">
 <input type="file" id="file-input-folder" class="hidden-input" webkitdirectory directory multiple>
 <input type="file" id="file-input-lrc" class="hidden-input" accept=".lrc,text/plain">
+<input type="file" id="file-input-track-cover" class="hidden-input" accept="image/*">
+<input type="file" id="file-input-backup" class="hidden-input" accept=".json,application/json">
 
 <script>
 (function(){
@@ -824,8 +880,8 @@
   window.__spindleBg = { setMode: setMode, setPhotoUrl: setPhotoUrl, setStock: setStock, stock: STOCK, getStockId: function(){ return stockId; } };
 })();
 </script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jsmediatags/3.9.5/jsmediatags.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="./vendor/jsmediatags.min.js"></script>
+<script src="./vendor/jszip.min.js"></script>
 <script>
 (function(){
 "use strict";
@@ -864,6 +920,9 @@ const ICONS = {
   edit: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>`,
   image: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>`,
   minus: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/></svg>`,
+  up: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 15l-6-6-6 6"/></svg>`,
+  down: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>`,
+  queue: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="9" y1="6" x2="21" y2="6"/><line x1="9" y1="12" x2="21" y2="12"/><line x1="9" y1="18" x2="21" y2="18"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/></svg>`,
 };
 
 /* ============================================================
@@ -964,6 +1023,9 @@ const state = {
   playbackRate: 1,
   preservesPitch: true,
   showLyrics: false,
+  lyricsSize: 'm',           // s | m | l
+  accent: '#C9A15A',
+  fontAlt: false,
 };
 
 let editingPlaylistDraftCover = null; // used while modal open
@@ -974,9 +1036,10 @@ let editingPlaylistDraftCover = null; // used while modal open
 const audio = new Audio();
 audio.preload = 'metadata';
 
-audio.addEventListener('play', ()=>{ state.isPlaying = true; syncPlayPauseUI(); ensureAudioGraph(); startVisualizerLoop(); if('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing'; });
+audio.addEventListener('play', ()=>{ state.isPlaying = true; syncPlayPauseUI(); if(audioCtx || needsAudioGraph()) ensureAudioGraph(); startVisualizerLoop(); if('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing'; });
 audio.addEventListener('pause', ()=>{ state.isPlaying = false; syncPlayPauseUI(); if('mediaSession' in navigator) navigator.mediaSession.playbackState = 'paused'; });
 audio.addEventListener('timeupdate', updateProgressUI);
+audio.addEventListener('timeupdate', keepAudioAlive);
 audio.addEventListener('timeupdate', ()=> maybeStartCrossfade());
 audio.addEventListener('timeupdate', updateLyricsUI);
 audio.addEventListener('ended', ()=>{ if(!crossfadeInProgress) advanceTrack(true); });
@@ -994,12 +1057,27 @@ const EQ_PRESETS = {
   bass:  { label:'Bass Boost', bands:[7, 5, 0, -1, -1] },
   vocal: { label:'Vocal',      bands:[-3, -1, 4, 4, 1] },
 };
+// Playing straight through the browser's own media pipeline is the smoothest, most battery-friendly
+// path (especially with the screen off). Web Audio is only switched on when EQ or crossfade needs it.
+function needsAudioGraph(){
+  const eqActive = state.eq.enabled && state.eq.bands.some(b => b !== 0);
+  return !!(eqActive || state.crossfadeSeconds > 0);
+}
+function keepAudioAlive(){
+  if(audioCtx && state.isPlaying && audioCtx.state !== 'running' && audioCtx.state !== 'closed'){
+    audioCtx.resume().catch(()=>{});
+  }
+}
+document.addEventListener('visibilitychange', keepAudioAlive);
+document.addEventListener('visibilitychange', ()=>{ if(!document.hidden){ updateProgressUI(); updateLyricsUI(); syncPlayPauseUI(); } });
 function ensureAudioGraph(){
   if(audioCtx) { if(audioCtx.state === 'suspended') audioCtx.resume().catch(()=>{}); return; }
+  setTimeout(()=>{ if(analyserNode){ document.querySelectorAll('.visualizer').forEach(el=>el.classList.remove('fake')); startVisualizerLoop(); } }, 50);
   try{
     const Ctx = window.AudioContext || window.webkitAudioContext;
     if(!Ctx) return;
-    audioCtx = new Ctx();
+    // 'playback' = larger buffers + power-friendly scheduling, which keeps music smooth with the screen off
+    try{ audioCtx = new Ctx({ latencyHint: 'playback' }); }catch(e){ audioCtx = new Ctx(); }
     // createMediaElementSource can only ever be called once for this <audio> element,
     // so every downstream feature (EQ, analyser, crossfade gain) has to be built on this single call.
     const source = audioCtx.createMediaElementSource(audio);
@@ -1108,6 +1186,7 @@ function setupMediaSession(){
   try{
     navigator.mediaSession.setActionHandler('play', ()=> audio.play().catch(()=>{}));
     navigator.mediaSession.setActionHandler('pause', ()=> audio.pause());
+    navigator.mediaSession.setActionHandler('stop', ()=> audio.pause());
     navigator.mediaSession.setActionHandler('previoustrack', ()=> prevTrack());
     navigator.mediaSession.setActionHandler('nexttrack', ()=> advanceTrack(false));
     navigator.mediaSession.setActionHandler('seekto', (details)=>{
@@ -1124,12 +1203,33 @@ function updateMediaSessionMetadata(track){
     title: track.title || 'Unknown Title',
     artist: track.artist || 'Unknown Artist',
     album: track.album || 'Spindle',
-    artwork: track.coverArt ? [
-      { src: track.coverArt, sizes: '256x256', type: 'image/png' },
-      { src: track.coverArt, sizes: '512x512', type: 'image/png' },
-    ] : [],
+    artwork: mediaArtwork(track),
   });
 }
+function mediaArtwork(track){
+  const art = coverArtOrNull(track);
+  if(art){
+    const m = /^data:([^;,]+)/.exec(art);
+    return [ { src: art, sizes: '512x512', type: m ? m[1] : 'image/jpeg' } ];
+  }
+  // no embedded cover: show the Spindle record so the notification still looks right
+  let icon = './icon-512.png';
+  try{ icon = new URL('./icon-512.png', location.href).href; }catch(e){}
+  return [ { src: icon, sizes: '512x512', type: 'image/png' } ];
+}
+let lastPosPush = 0;
+function pushMediaPosition(){
+  if(!('mediaSession' in navigator) || !navigator.mediaSession.setPositionState) return;
+  const now = Date.now();
+  if(now - lastPosPush < 1000) return;
+  lastPosPush = now;
+  if(!isFinite(audio.duration) || audio.duration <= 0) return;
+  try{
+    navigator.mediaSession.setPositionState({ duration: audio.duration, playbackRate: audio.playbackRate || 1, position: Math.min(audio.currentTime, audio.duration) });
+  }catch(e){}
+}
+audio.addEventListener('timeupdate', pushMediaPosition);
+audio.addEventListener('seeked', ()=>{ lastPosPush = 0; pushMediaPosition(); });
 
 /* ============================================================
    HELPERS
@@ -1147,7 +1247,8 @@ function escapeHtml(str){
 }
 function getTrackById(id){ return state.tracks.find(t => t.id === id) || null; }
 function getPlaylistById(id){ return state.playlists.find(p => p.id === id) || null; }
-function coverArtOrNull(t){ return t && t.coverArt ? t.coverArt : null; }
+// cover art must be a plain base64 image data URL, nothing else (older imports may hold untrusted text)
+function coverArtOrNull(t){ return t && typeof t.coverArt === 'string' && /^data:image\/(png|jpe?g|gif|webp|bmp);base64,[A-Za-z0-9+/=]+$/.test(t.coverArt) ? t.coverArt : null; }
 
 /* Recently Played: dedupe the history log to one entry per track, newest first,
    skipping any track that no longer exists in the library. */
@@ -1541,6 +1642,7 @@ function playAllFromContext(contextId, shuffleFirst){
    LIGHTWEIGHT UI SYNC (no full re-render, preserves slider drag state)
 ============================================================ */
 function updateProgressUI(){
+  if(document.hidden) return; // screen off / app hidden: skip all DOM work
   const dur = audio.duration || 0;
   const cur = audio.currentTime || 0;
   const pct = dur ? (cur/dur)*100 : 0;
@@ -1558,9 +1660,6 @@ function updateProgressUI(){
   const miniFill = document.getElementById('mini-progress-fill');
   if(miniFill) miniFill.style.width = pct + '%';
 
-  if('mediaSession' in navigator && dur){
-    try{ navigator.mediaSession.setPositionState({ duration: dur, playbackRate: 1, position: cur }); }catch(e){}
-  }
 }
 
 function syncPlayPauseUI(){
@@ -1570,6 +1669,7 @@ function syncPlayPauseUI(){
   document.querySelectorAll('.vinyl, .mini-disc').forEach(el=>{
     el.classList.toggle('spinning', state.isPlaying);
   });
+  document.querySelectorAll('.visualizer').forEach(el=>el.classList.toggle('idle', !state.isPlaying));
   const miniBar = document.getElementById('mini-player-root');
   if(miniBar) miniBar.style.display = state.baseQueue.length ? '' : 'none';
 }
@@ -1593,7 +1693,9 @@ function extractTags(file){
               for(let i=0;i<data.length;i+=chunk){
                 binary += String.fromCharCode.apply(null, data.slice(i, i+chunk));
               }
-              coverArt = 'data:' + tags.picture.format + ';base64,' + btoa(binary);
+              const fmt = String(tags.picture.format || '').toLowerCase();
+              const safeFmt = /^image\/(png|jpe?g|gif|webp|bmp)$/.test(fmt) ? fmt : 'image/jpeg';
+              coverArt = 'data:' + safeFmt + ';base64,' + btoa(binary);
             }catch(e){ coverArt = null; }
           }
           resolve({ title: tags.title, artist: tags.artist, album: tags.album, coverArt, embeddedLyrics: (tags.lyrics && tags.lyrics.lyrics) ? tags.lyrics.lyrics : null });
@@ -1629,7 +1731,7 @@ function parseLRC(text){
   return result;
 }
 function updateLyricsUI(){
-  if(!state.showLyrics) return;
+  if(!state.showLyrics || document.hidden) return;
   const scrollEl = document.getElementById('lyrics-scroll');
   if(!scrollEl) return;
   const lines = scrollEl.querySelectorAll('.lyrics-line[data-time]');
@@ -2169,7 +2271,7 @@ function renderPlaylistDetail(){
 function renderTrackRow(t, index, contextId, allowRemove, metaRight){
   const isCurrent = state.queueContextId === contextId && state.baseQueue[state.playOrder[state.currentIndex]] === t.id;
   const thumb = coverArtOrNull(t)
-    ? `<img class="track-thumb" src="${t.coverArt}" alt="">`
+    ? `<img class="track-thumb" src="${escapeHtml(coverArtOrNull(t))}" alt="">`
     : `<div class="track-thumb-fallback">${ICONS.note}</div>`;
   const numCell = isCurrent
     ? `<div class="eq">${state.isPlaying ? '<span style="animation-delay:0s"></span><span style="animation-delay:.15s"></span><span style="animation-delay:.3s"></span>' : '<span style="height:3px"></span><span style="height:3px"></span><span style="height:3px"></span>'}</div>`
@@ -2192,7 +2294,8 @@ function renderLyricsPanel(track){
   const parsed = track.lyricsLRC ? parseLRC(track.lyricsLRC) : [];
   if(parsed.length){
     return `
-      <div class="lyrics-panel">
+      <div class="lyrics-panel lyrics-${escapeHtml(state.lyricsSize)}">
+        ${lyricsToolsRow()}
         <div class="lyrics-scroll" id="lyrics-scroll">
           <div class="lyrics-pad"></div>
           ${parsed.map(line => `<p class="lyrics-line" data-time="${line.time}">${escapeHtml(line.text) || '\u2022'}</p>`).join('')}
@@ -2204,7 +2307,8 @@ function renderLyricsPanel(track){
   }
   if(track.embeddedLyrics){
     return `
-      <div class="lyrics-panel">
+      <div class="lyrics-panel lyrics-${escapeHtml(state.lyricsSize)}">
+        ${lyricsToolsRow()}
         <div class="lyrics-scroll unsynced">
           <p class="lyrics-line active">${escapeHtml(track.embeddedLyrics)}</p>
         </div>
@@ -2217,7 +2321,8 @@ function renderLyricsPanel(track){
     `;
   }
   return `
-    <div class="lyrics-panel">
+    <div class="lyrics-panel lyrics-${escapeHtml(state.lyricsSize)}">
+      ${lyricsToolsRow()}
       <div class="empty-state" style="padding:26px 16px;">
         ${ICONS.lyrics}
         <h3>No lyrics yet</h3>
@@ -2249,6 +2354,7 @@ function renderNowPlaying(){
       <div class="topbar">
         ${backHomeBtn()}
         <div style="display:flex;gap:8px;">
+          <button class="icon-btn" data-action="nav-queue" aria-label="Queue">${ICONS.queue}</button>
           <button class="icon-btn ${state.showLyrics?'on':''}" data-action="toggle-lyrics-view" aria-label="Lyrics">${ICONS.lyrics}</button>
           <button class="icon-btn" data-action="open-eq-modal" aria-label="Sound settings">${ICONS.sliders}</button>
         </div>
@@ -2272,11 +2378,12 @@ function renderNowPlaying(){
         `}
       </div>
 
-      <div class="visualizer" id="visualizer-bars">
+      <div class="visualizer ${analyserNode ? '' : 'fake'} ${state.isPlaying ? '' : 'idle'}" id="visualizer-bars">
         ${Array.from({length:24}).map(()=>'<span></span>').join('')}
       </div>
 
       <div class="np-seek">
+        <div class="seek-bubble" id="seek-bubble">0:00</div>
         <input type="range" id="seek-range" min="0" max="100" step="0.1" value="0" data-action="seek-range" aria-label="Seek">
         <div class="seek-row" style="margin-top:8px;">
           <span class="time-label" id="seek-current-label">0:00</span>
@@ -2358,6 +2465,9 @@ function renderSettings(){
         <button class="pill-btn" style="width:100%;margin-top:12px;" data-action="trigger-bg-photo-upload">${ICONS.image}<span>${state.background.photoObjectURL ? (state.background.photoIsVideo ? 'Change Video or Photo' : 'Change Photo or Video') : 'Choose Photo or Video'}</span></button>
       ` : ''}
     </div>
+    ${renderAppearanceSection()}
+    ${renderLibraryToolsSection()}
+    ${renderHelpSection()}
     <div style="padding:20px 20px 0;">
       <button class="danger-btn" data-action="clear-all-data">Erase All Songs, Playlists & History</button>
     </div>
@@ -2412,8 +2522,12 @@ function render(){
   else if(state.view === 'now-playing') html = renderNowPlaying();
   else if(state.view === 'settings') html = renderSettings();
   else if(state.view === 'search') html = renderSearch();
+  else if(state.view === 'queue') html = renderQueue();
+  else if(state.view === 'guide') html = renderGuide();
+  else if(state.view === 'legal') html = renderLegal();
   html += renderMiniPlayer();
   app.innerHTML = `<div>${html}</div>`;
+  if(state.view === 'settings') refreshStorageInfo();
   updateProgressUI();
   const seekEl = document.getElementById('seek-range');
   if(seekEl){
@@ -2462,7 +2576,6 @@ function closeModal(){
 }
 
 function openEqModal(){
-  ensureAudioGraph(); // opening the panel is a real user gesture, so it's safe to init/resume the AudioContext here
   openModalHtml(renderEqModalBody());
 }
 function renderEqModalBody(){
@@ -2583,11 +2696,781 @@ function openTrackMenuModal(trackId, contextId, removable){
   openModalHtml(`
     <h2 style="font-size:16px;">${escapeHtml(t.title)}</h2>
     <div class="modal-btn-row" style="flex-direction:column;">
+      <button class="modal-btn" style="width:100%;margin-bottom:10px;" data-action="queue-play-next" data-id="${trackId}">Play Next</button>
+      <button class="modal-btn" style="width:100%;margin-bottom:10px;" data-action="queue-add" data-id="${trackId}">Add to Queue</button>
+      <button class="modal-btn" style="width:100%;margin-bottom:10px;" data-action="edit-track" data-id="${trackId}">Edit Song Info</button>
       ${removable ? `<button class="modal-btn" style="width:100%;margin-bottom:10px;" data-action="remove-from-playlist" data-id="${trackId}" data-context="${contextId}">Remove from Playlist</button>` : ''}
       <button class="modal-btn" style="width:100%;margin-bottom:10px;color:var(--danger);" data-action="delete-track-confirm" data-id="${trackId}">Delete Permanently</button>
       <button class="modal-btn" style="width:100%;" data-action="close-modal">Cancel</button>
     </div>
   `);
+}
+
+/* ============================================================
+   SHARED HELPERS
+============================================================ */
+function sanitizeStr(v, max){ return typeof v === 'string' ? v.slice(0, max) : ''; }
+function formatBytes(n){
+  if(!isFinite(n) || n < 0) return '?';
+  if(n < 1024*1024) return Math.max(1, Math.round(n/1024)) + ' KB';
+  if(n < 1024*1024*1024) return (n/(1024*1024)).toFixed(n < 100*1024*1024 ? 1 : 0) + ' MB';
+  return (n/(1024*1024*1024)).toFixed(1) + ' GB';
+}
+function imageBlobToCoverDataUrl(blob, maxSize){
+  return new Promise((resolve, reject)=>{
+    const u = URL.createObjectURL(blob);
+    const img = new Image();
+    img.onload = ()=>{
+      try{
+        const s = Math.min(1, maxSize / Math.max(img.width, img.height));
+        const w = Math.max(1, Math.round(img.width * s)), h = Math.max(1, Math.round(img.height * s));
+        const c = document.createElement('canvas');
+        c.width = w; c.height = h;
+        c.getContext('2d').drawImage(img, 0, 0, w, h);
+        URL.revokeObjectURL(u);
+        resolve(c.toDataURL('image/jpeg', 0.85));
+      }catch(err){ URL.revokeObjectURL(u); reject(err); }
+    };
+    img.onerror = ()=>{ URL.revokeObjectURL(u); reject(new Error('Not a readable image')); };
+    img.src = u;
+  });
+}
+async function updateTrackMeta(id, changes){
+  const full = await idbGet('tracks', id);
+  if(!full) return false;
+  Object.assign(full, changes);
+  await idbPut('tracks', full);
+  const light = getTrackById(id);
+  if(light) Object.assign(light, changes);
+  return true;
+}
+
+/* ============================================================
+   1. EDIT SONG INFO  (+ clean-up of messy names, + auto-find)
+============================================================ */
+let editingTrackDraft = null; // { id, coverArt }
+let trackMatchResults = [];
+
+function setTrackCoverPreview(url){
+  const p = document.getElementById('track-cover-preview');
+  if(p) p.innerHTML = url ? `<img src="${escapeHtml(url)}" alt="">` : ICONS.note;
+}
+function openEditTrackModal(trackId){
+  const t = getTrackById(trackId);
+  if(!t) return;
+  const art = coverArtOrNull(t);
+  editingTrackDraft = { id: trackId, coverArt: art };
+  trackMatchResults = [];
+  openModalHtml(`
+    <h2>Edit Song Info</h2>
+    <span class="field-label" style="margin-top:0;">Cover</span>
+    <div class="cover-preview-row">
+      <div class="cover-preview" id="track-cover-preview">${art ? `<img src="${escapeHtml(art)}" alt="">` : ICONS.note}</div>
+      <button class="upload-img-btn" data-action="pick-track-cover">Upload Image</button>
+      <button class="upload-img-btn" data-action="remove-track-cover">Remove</button>
+    </div>
+    <span class="field-label">Title</span>
+    <input type="text" class="text-input" id="edit-track-title" maxlength="120" value="${escapeHtml(t.title)}">
+    <span class="field-label">Artist</span>
+    <input type="text" class="text-input" id="edit-track-artist" maxlength="120" placeholder="Unknown Artist" value="${escapeHtml(t.artist === 'Unknown Artist' ? '' : t.artist)}">
+    <span class="field-label">Album</span>
+    <input type="text" class="text-input" id="edit-track-album" maxlength="120" value="${escapeHtml(t.album || '')}">
+    <button class="pill-btn" style="width:100%;margin-bottom:12px;" data-action="track-autofind">${ICONS.search}<span>Auto-find info &amp; cover</span></button>
+    <div id="track-match-list"></div>
+    <div class="modal-btn-row">
+      <button class="modal-btn" data-action="close-modal">Cancel</button>
+      <button class="modal-btn primary" data-action="save-track-edit">Save</button>
+    </div>
+  `);
+}
+function safeItunesArt(url){
+  try{
+    const u = new URL(url);
+    if(u.protocol === 'https:' && /(^|\.)mzstatic\.com$/.test(u.hostname)) return u.href;
+  }catch(e){}
+  return '';
+}
+async function fetchItunesCover(url){
+  const safe = safeItunesArt(url);
+  if(!safe) throw new Error('blocked host');
+  const big = safe.replace(/\/\d+x\d+(bb)?\.(jpg|png|jpeg)(?=$|\?)/i, '/600x600bb.jpg');
+  const res = await fetch(big);
+  if(!res.ok) throw new Error('HTTP ' + res.status);
+  const blob = await res.blob();
+  if(!/^image\//.test(blob.type)) throw new Error('not an image');
+  return imageBlobToCoverDataUrl(blob, 512);
+}
+async function autoFindTrackInfo(){
+  const out = document.getElementById('track-match-list');
+  if(!out || !editingTrackDraft) return;
+  const t = getTrackById(editingTrackDraft.id);
+  if(!t) return;
+  if(!navigator.onLine){ showToast('You\u2019re offline \u2014 can\u2019t search right now.'); return; }
+  const typedTitle = (document.getElementById('edit-track-title').value || '').trim();
+  const typedArtist = (document.getElementById('edit-track-artist').value || '').trim();
+  const names = (typedTitle || typedArtist) ? { title: typedTitle, artist: typedArtist } : lookupNames(t);
+  const term = [names.artist, names.title].filter(Boolean).join(' ').trim();
+  if(!term){ showToast('Type a title or artist first.'); return; }
+  out.innerHTML = '<p class="lyrics-hint">Searching\u2026</p>';
+  try{
+    const res = await fetch('https://itunes.apple.com/search?' + new URLSearchParams({ term, entity:'song', media:'music', limit:'6' }).toString());
+    if(!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    const list = Array.isArray(data && data.results) ? data.results : [];
+    trackMatchResults = list.filter(r => r && r.trackName).slice(0, 6).map(r => ({
+      title: sanitizeStr(r.trackName, 120), artist: sanitizeStr(r.artistName, 120),
+      album: sanitizeStr(r.collectionName, 120), art: safeItunesArt(sanitizeStr(r.artworkUrl100, 400)),
+    }));
+    if(!document.getElementById('track-match-list')) return; // modal closed meanwhile
+    out.innerHTML = trackMatchResults.length ? trackMatchResults.map((m, i) => `
+      <button class="match-row" data-action="apply-track-match" data-index="${i}">
+        ${m.art ? `<img src="${escapeHtml(m.art)}" alt="">` : `<span class="match-thumb">${ICONS.note}</span>`}
+        <span class="match-text"><strong>${escapeHtml(m.title)}</strong><span>${escapeHtml(m.artist)}${m.album ? ' \u00b7 ' + escapeHtml(m.album) : ''}</span></span>
+      </button>`).join('') : '<p class="lyrics-hint">No matches found. Try changing the title or artist above.</p>';
+  }catch(err){
+    console.warn('Song lookup failed', err);
+    if(document.getElementById('track-match-list')) out.innerHTML = '<p class="lyrics-hint">Couldn\u2019t reach the music search right now. You can still type the info in by hand.</p>';
+  }
+}
+async function applyTrackMatch(index){
+  const m = trackMatchResults[index];
+  if(!m || !editingTrackDraft) return;
+  const ti = document.getElementById('edit-track-title'), ar = document.getElementById('edit-track-artist'), al = document.getElementById('edit-track-album');
+  if(ti) ti.value = m.title;
+  if(ar) ar.value = m.artist;
+  if(al) al.value = m.album;
+  if(!m.art){ showToast('Info filled in. Tap Save to keep it.'); return; }
+  try{
+    const dataUrl = await fetchItunesCover(m.art);
+    if(!editingTrackDraft) return;
+    editingTrackDraft.coverArt = dataUrl;
+    setTrackCoverPreview(dataUrl);
+    showToast('Info and cover filled in. Tap Save to keep them.');
+  }catch(err){
+    console.warn('Cover download failed', err);
+    showToast('Info filled in \u2014 the cover couldn\u2019t be downloaded.');
+  }
+}
+async function saveTrackEdit(){
+  const d = editingTrackDraft;
+  if(!d) return;
+  const title = (document.getElementById('edit-track-title').value || '').trim().slice(0, 120);
+  const artist = (document.getElementById('edit-track-artist').value || '').trim().slice(0, 120);
+  const album = (document.getElementById('edit-track-album').value || '').trim().slice(0, 120);
+  if(!title){ showToast('The title can\u2019t be empty.'); return; }
+  const ok = await updateTrackMeta(d.id, { title, artist: artist || 'Unknown Artist', album, coverArt: d.coverArt || null, edited: true });
+  editingTrackDraft = null;
+  closeModal();
+  if(!ok){ showToast('That song no longer exists.'); render(); return; }
+  const cur = getCurrentPlayingTrack();
+  if(cur && cur.id === d.id) updateMediaSessionMetadata(cur);
+  render();
+  showToast('Song info saved.');
+}
+function cleanupCandidates(){
+  const out = [];
+  for(const t of state.tracks){
+    if(t.edited || !t.fileName) continue;
+    if(t.artist && t.artist !== 'Unknown Artist') continue; // has real tags: leave alone
+    const p = parseFileName(t.fileName);
+    if(!p.title) continue;
+    if(p.title !== t.title || (p.artist && p.artist !== t.artist)) out.push({ id: t.id, title: p.title, artist: p.artist || 'Unknown Artist' });
+  }
+  return out;
+}
+async function cleanupSongNames(){
+  const list = cleanupCandidates();
+  if(!list.length){ showToast('All your song names already look clean.'); return; }
+  if(!confirm('Clean up ' + list.length + ' song name' + (list.length > 1 ? 's' : '') + '? Titles and artists will be read from the file names. Songs you edited by hand are never touched.')) return;
+  showToast('Cleaning up\u2026');
+  let done = 0;
+  for(const c of list){
+    try{ if(await updateTrackMeta(c.id, { title: c.title, artist: c.artist })) done++; }catch(e){ console.warn('cleanup failed for', c.id, e); }
+  }
+  const cur = getCurrentPlayingTrack();
+  if(cur) updateMediaSessionMetadata(cur);
+  render();
+  showToast('Cleaned up ' + done + ' song' + (done === 1 ? '' : 's') + '.');
+}
+
+/* ============================================================
+   2. PROTECT YOUR LIBRARY  (persistent storage + backup / restore)
+============================================================ */
+async function requestPersistentStorage(){
+  try{
+    if(navigator.storage && navigator.storage.persist){
+      if(navigator.storage.persisted && await navigator.storage.persisted()) return true;
+      return !!(await navigator.storage.persist());
+    }
+  }catch(e){}
+  return false;
+}
+async function refreshStorageInfo(){
+  if(!document.getElementById('storage-protect')) return;
+  let persisted = false, usage = null, quota = null;
+  try{ if(navigator.storage && navigator.storage.persisted) persisted = await navigator.storage.persisted(); }catch(e){}
+  try{ if(navigator.storage && navigator.storage.estimate){ const e = await navigator.storage.estimate(); usage = e.usage; quota = e.quota; } }catch(e){}
+  const pEl = document.getElementById('storage-protect'), uEl = document.getElementById('storage-usage'), btn = document.getElementById('persist-btn');
+  if(!pEl) return; // user left Settings meanwhile
+  pEl.textContent = persisted ? 'On' : 'Off';
+  if(uEl) uEl.textContent = usage == null ? 'Unknown' : formatBytes(usage) + (quota ? ' of ' + formatBytes(quota) : '');
+  if(btn) btn.style.display = persisted ? 'none' : '';
+}
+async function exportBackup(){
+  try{
+    const lsGet = (k)=>{ try{ return localStorage.getItem(k); }catch(e){ return null; } };
+    const parseJ = (s)=>{ try{ return s ? JSON.parse(s) : null; }catch(e){ return null; } };
+    const data = {
+      app: 'spindle', version: 1, exportedAt: Date.now(),
+      tracks: state.tracks.map(t => ({
+        id: t.id, fileName: t.fileName || '', duration: t.duration || 0,
+        title: t.title, artist: t.artist, album: t.album || '',
+        playCount: t.playCount || 0, edited: !!t.edited,
+        coverArt: t.edited ? coverArtOrNull(t) : null,
+        lyricsLRC: t.lyricsLRC || null, embeddedLyrics: t.embeddedLyrics || null,
+      })),
+      playlists: state.playlists.map(p => ({ id: p.id, name: p.name, coverUrl: p.coverUrl || null, trackIds: p.trackIds.slice(), createdAt: p.createdAt || 0 })),
+      history: state.history.slice(0, 300).map(h => ({ trackId: h.trackId, playedAt: h.playedAt })),
+      settings: {
+        eq: parseJ(lsGet('spindle-eq')), playback: parseJ(lsGet('spindle-playback')),
+        volume: parseFloat(lsGet('spindle-volume')), accent: lsGet('spindle-accent'),
+        font: lsGet('spindle-font'), lyricsSize: lsGet('spindle-lyrics-size'),
+      },
+    };
+    const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const d = new Date();
+    a.href = url;
+    a.download = 'spindle-backup-' + d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0') + '.json';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(()=> URL.revokeObjectURL(url), 5000);
+    showToast('Backup saved (' + formatBytes(blob.size) + '). Keep it somewhere safe.');
+  }catch(err){
+    console.error('Backup failed', err);
+    showToast('Couldn\u2019t create the backup.');
+  }
+}
+async function restoreBackupFile(file){
+  if(file.size > 40 * 1024 * 1024){ showToast('That file is too large to be a Spindle backup.'); return; }
+  let data;
+  try{ data = JSON.parse(await file.text()); }catch(e){ showToast('That isn\u2019t a valid backup file.'); return; }
+  if(!data || data.app !== 'spindle' || !Array.isArray(data.tracks) || !Array.isArray(data.playlists)){
+    showToast('That isn\u2019t a Spindle backup.');
+    return;
+  }
+  showToast('Restoring\u2026');
+  const keyOf = (name, dur)=> String(name).toLowerCase() + '|' + Math.round(Number(dur) || 0);
+  const byKey = new Map();
+  state.tracks.forEach(t => { if(t.fileName) byKey.set(keyOf(t.fileName, t.duration), t); });
+  const idMap = new Map();
+  let matched = 0, missing = 0;
+  for(const b of data.tracks.slice(0, 20000)){
+    if(!b || typeof b.id !== 'string') continue;
+    const cur = byKey.get(keyOf(sanitizeStr(b.fileName, 300), b.duration));
+    if(!cur){ missing++; continue; }
+    idMap.set(b.id, cur.id);
+    matched++;
+    const changes = {};
+    const pc = Math.max(0, Math.min(1000000, parseInt(b.playCount, 10) || 0));
+    if(pc > (cur.playCount || 0)) changes.playCount = pc;
+    if(b.edited === true){
+      const title = sanitizeStr(b.title, 120).trim();
+      if(title){
+        changes.title = title;
+        changes.artist = sanitizeStr(b.artist, 120).trim() || 'Unknown Artist';
+        changes.album = sanitizeStr(b.album, 120).trim();
+        if(typeof b.coverArt === 'string' && b.coverArt.length < 900000 && /^data:image\/(png|jpe?g|gif|webp|bmp);base64,[A-Za-z0-9+/=]+$/.test(b.coverArt)) changes.coverArt = b.coverArt;
+        changes.edited = true;
+      }
+    }
+    if(!cur.lyricsLRC && typeof b.lyricsLRC === 'string' && b.lyricsLRC.length < 400000) changes.lyricsLRC = b.lyricsLRC;
+    if(!cur.embeddedLyrics && typeof b.embeddedLyrics === 'string' && b.embeddedLyrics.length < 200000) changes.embeddedLyrics = b.embeddedLyrics;
+    if(Object.keys(changes).length) await updateTrackMeta(cur.id, changes);
+  }
+  let plAdded = 0, plMerged = 0;
+  for(const bp of data.playlists.slice(0, 500)){
+    const name = sanitizeStr(bp && bp.name, 60).trim();
+    if(!name) continue;
+    const ids = Array.isArray(bp.trackIds) ? bp.trackIds.map(i => idMap.get(i)).filter(Boolean) : [];
+    const existing = state.playlists.find(p => p.name === name);
+    if(existing){
+      const before = existing.trackIds.length;
+      await addTracksToPlaylist(existing.id, ids);
+      if(existing.trackIds.length > before) plMerged++;
+    } else {
+      let cover = null;
+      const cu = bp.coverUrl;
+      if(typeof cu === 'string' && cu.length < 600000 && (/^https:\/\//.test(cu) || /^data:image\/(png|jpe?g|gif|webp);base64,[A-Za-z0-9+/=]+$/.test(cu))) cover = cu;
+      const pl = await createPlaylist(name, cover);
+      await addTracksToPlaylist(pl.id, ids);
+      plAdded++;
+    }
+  }
+  if(!state.history.length && Array.isArray(data.history)){
+    for(const h of data.history.slice(0, 300)){
+      const tid = h && idMap.get(h.trackId);
+      const at = Number(h && h.playedAt);
+      if(!tid || !isFinite(at)) continue;
+      const entry = { id: uid('hist'), trackId: tid, playedAt: at };
+      await idbPut('history', entry);
+      state.history.push(entry);
+    }
+    state.history.sort((a,b)=> (b.playedAt||0) - (a.playedAt||0));
+  }
+  const s = (data.settings && typeof data.settings === 'object') ? data.settings : {};
+  try{
+    if(s.eq && Array.isArray(s.eq.bands) && s.eq.bands.length === 5 && s.eq.bands.every(n => typeof n === 'number' && n >= -12 && n <= 12)){
+      localStorage.setItem('spindle-eq', JSON.stringify({ enabled: !!s.eq.enabled, preset: sanitizeStr(s.eq.preset, 20) || 'custom', bands: s.eq.bands }));
+      loadEqSettings();
+    }
+    if(s.playback && typeof s.playback === 'object'){
+      const pb = {};
+      if(typeof s.playback.playbackRate === 'number') pb.playbackRate = s.playback.playbackRate;
+      if(typeof s.playback.preservesPitch === 'boolean') pb.preservesPitch = s.playback.preservesPitch;
+      if(typeof s.playback.crossfadeSeconds === 'number') pb.crossfadeSeconds = s.playback.crossfadeSeconds;
+      localStorage.setItem('spindle-playback', JSON.stringify(pb));
+      loadPlaybackSettings();
+    }
+    if(typeof s.volume === 'number' && s.volume >= 0 && s.volume <= 1){ state.volume = s.volume; audio.volume = s.volume; localStorage.setItem('spindle-volume', String(s.volume)); }
+    if(typeof s.accent === 'string' && hexToRgb(s.accent)) localStorage.setItem('spindle-accent', s.accent);
+    if(s.font === 'alt' || s.font === 'ui') localStorage.setItem('spindle-font', s.font);
+    if(['s','m','l'].includes(s.lyricsSize)) localStorage.setItem('spindle-lyrics-size', s.lyricsSize);
+    loadAppearance();
+  }catch(e){ console.warn('Could not restore some settings', e); }
+  render();
+  let msg = 'Restored: ' + matched + ' song' + (matched === 1 ? '' : 's') + ' matched, ' + plAdded + ' playlist' + (plAdded === 1 ? '' : 's') + ' added' + (plMerged ? ', ' + plMerged + ' updated' : '') + '.';
+  if(missing) msg += ' ' + missing + ' song' + (missing === 1 ? ' is' : 's are') + ' not in this library yet \u2014 add those MP3s, then restore again.';
+  showToast(msg);
+}
+
+/* ============================================================
+   4. QUEUE CONTROLS
+============================================================ */
+function queuePlayNext(trackId){
+  const t = getTrackById(trackId);
+  if(!t) return;
+  if(!state.baseQueue.length){ startQueue([trackId], trackId, 'queue'); return; }
+  if(crossfadeInProgress) cancelCrossfade();
+  state.baseQueue.push(trackId);
+  state.playOrder.splice(state.currentIndex + 1, 0, state.baseQueue.length - 1);
+  showToast('Playing next: ' + t.title);
+  if(state.view === 'queue') render();
+}
+function queueAdd(trackId){
+  const t = getTrackById(trackId);
+  if(!t) return;
+  if(!state.baseQueue.length){ startQueue([trackId], trackId, 'queue'); return; }
+  state.baseQueue.push(trackId);
+  state.playOrder.push(state.baseQueue.length - 1);
+  showToast('Added to queue: ' + t.title);
+  if(state.view === 'queue') render();
+}
+function removeFromQueueAt(pos){
+  const baseIdx = state.playOrder[pos];
+  if(baseIdx == null || pos <= state.currentIndex) return; // only upcoming songs can be removed
+  state.baseQueue.splice(baseIdx, 1);
+  state.playOrder.splice(pos, 1);
+  state.playOrder = state.playOrder.map(i => i > baseIdx ? i - 1 : i);
+}
+function renderQueue(){
+  const cur = getCurrentPlayingTrack();
+  if(!state.baseQueue.length || !cur){
+    return `<div class="topbar">${backHomeBtn()}<div style="width:42px;"></div></div><div class="empty-state"><h3>The queue is empty</h3><p>Play a song, then use \u201cPlay Next\u201d or \u201cAdd to Queue\u201d from a song\u2019s menu.</p></div>`;
+  }
+  const upcoming = [];
+  for(let p = state.currentIndex + 1; p < state.playOrder.length; p++){
+    const t = getTrackById(state.baseQueue[state.playOrder[p]]);
+    if(t) upcoming.push({ p, t });
+  }
+  const lastPos = state.playOrder.length - 1;
+  return `
+    <div class="topbar">
+      <button class="back-home-btn" data-action="nav-now-playing">${ICONS.back}<span>Now Playing</span></button>
+      <div style="width:42px;"></div>
+    </div>
+    <div class="home-hero"><h1 style="font-size:24px;">Queue</h1></div>
+    <div class="section" style="padding-top:0;">
+      <div class="section-head"><h2 style="font-size:16px;">Now playing</h2></div>
+      <div class="q-row active-track"><div class="track-meta"><strong>${escapeHtml(cur.title)}</strong><span>${escapeHtml(cur.artist)}</span></div></div>
+    </div>
+    <div class="section" style="padding-top:6px;">
+      <div class="section-head"><h2 style="font-size:16px;">Up next</h2><span class="count">${upcoming.length} song${upcoming.length === 1 ? '' : 's'}</span></div>
+      ${upcoming.length ? upcoming.map(({p, t}) => `
+        <div class="q-row" data-action="queue-jump" data-pos="${p}">
+          <div class="track-meta"><strong>${escapeHtml(t.title)}</strong><span>${escapeHtml(t.artist)}</span></div>
+          <button class="q-btn" data-action="queue-up" data-pos="${p}" aria-label="Move up" ${p === state.currentIndex + 1 ? 'disabled' : ''}>${ICONS.up}</button>
+          <button class="q-btn" data-action="queue-down" data-pos="${p}" aria-label="Move down" ${p === lastPos ? 'disabled' : ''}>${ICONS.down}</button>
+          <button class="q-btn" data-action="queue-remove" data-pos="${p}" aria-label="Remove from queue">${ICONS.x}</button>
+        </div>`).join('') : '<p class="lyrics-hint" style="padding:6px 0 14px;">Nothing queued after this song.</p>'}
+      ${upcoming.length ? `<button class="pill-btn" style="width:100%;margin-top:12px;" data-action="queue-clear">Clear upcoming songs</button>` : ''}
+    </div>
+  `;
+}
+
+/* ============================================================
+   6. BETTER LYRICS  (tap to jump, text size, pick another match)
+============================================================ */
+const LYRICS_SIZES = ['s', 'm', 'l'];
+let lyricsMatchResults = [];
+function lyricsToolsRow(){
+  return `<div class="lyrics-tools">
+    <button class="mini-pill" data-action="lyrics-size" data-dir="-1" aria-label="Smaller text">A\u2212</button>
+    <button class="mini-pill" data-action="lyrics-size" data-dir="1" aria-label="Larger text">A+</button>
+    <span style="flex:1;"></span>
+    <button class="mini-pill" data-action="open-lyrics-match">${ICONS.search}<span>Wrong lyrics?</span></button>
+  </div>`;
+}
+async function replaceLyricsForTrack(track, synced, plain){
+  if(!synced && !plain) return false;
+  const changes = { lyricsLRC: synced || null, embeddedLyrics: plain || null };
+  return updateTrackMeta(track.id, changes);
+}
+function openLyricsMatchModal(){
+  const t = getCurrentPlayingTrack();
+  if(!t) return;
+  const names = lookupNames(t);
+  lyricsMatchResults = [];
+  openModalHtml(`
+    <h2>Choose Lyrics</h2>
+    <span class="field-label" style="margin-top:0;">Song title</span>
+    <input type="text" class="text-input" id="lyrics-q-title" maxlength="120" value="${escapeHtml(names.title)}">
+    <span class="field-label">Artist</span>
+    <input type="text" class="text-input" id="lyrics-q-artist" maxlength="120" placeholder="Optional" value="${escapeHtml(names.artist)}">
+    <button class="pill-btn primary" style="width:100%;margin-bottom:12px;" data-action="lyrics-search">${ICONS.search}<span>Search</span></button>
+    <div id="lyrics-match-list"></div>
+    <div class="modal-btn-row"><button class="modal-btn" data-action="close-modal">Close</button></div>
+  `);
+}
+async function searchLyricsMatches(){
+  const out = document.getElementById('lyrics-match-list');
+  const t = getCurrentPlayingTrack();
+  if(!out || !t) return;
+  if(!navigator.onLine){ showToast('You\u2019re offline \u2014 can\u2019t search right now.'); return; }
+  const title = (document.getElementById('lyrics-q-title').value || '').trim();
+  const artist = (document.getElementById('lyrics-q-artist').value || '').trim();
+  if(!title && !artist){ showToast('Type a title or artist first.'); return; }
+  out.innerHTML = '<p class="lyrics-hint">Searching\u2026</p>';
+  try{
+    const p = new URLSearchParams();
+    if(title){ p.set('track_name', title); if(artist) p.set('artist_name', artist); } else { p.set('q', artist); }
+    const res = await fetch('https://lrclib.net/api/search?' + p.toString());
+    if(!res.ok) throw new Error('HTTP ' + res.status);
+    const arr = await res.json();
+    lyricsMatchResults = (Array.isArray(arr) ? arr : []).filter(r => r && (r.syncedLyrics || r.plainLyrics)).slice(0, 10).map(r => ({
+      title: sanitizeStr(r.trackName, 120), artist: sanitizeStr(r.artistName, 120), album: sanitizeStr(r.albumName, 120),
+      duration: Number(r.duration) || 0,
+      synced: typeof r.syncedLyrics === 'string' && r.syncedLyrics ? r.syncedLyrics : null,
+      plain: typeof r.plainLyrics === 'string' && r.plainLyrics ? r.plainLyrics : null,
+    }));
+    if(!document.getElementById('lyrics-match-list')) return;
+    out.innerHTML = lyricsMatchResults.length ? lyricsMatchResults.map((m, i) => {
+      const diff = t.duration && m.duration ? Math.round(m.duration - t.duration) : null;
+      const diffTxt = diff === null ? '' : ' (' + (diff >= 0 ? '+' : '\u2212') + Math.abs(diff) + 's)';
+      return `<button class="match-row" data-action="apply-lyrics-match" data-index="${i}">
+        <span class="match-text"><strong>${escapeHtml(m.title)}</strong><span>${escapeHtml(m.artist)} \u00b7 ${m.duration ? formatTime(m.duration) : '?'}${diffTxt} \u00b7 ${m.synced ? 'Synced' : 'Plain text'}</span></span>
+      </button>`;
+    }).join('') : '<p class="lyrics-hint">No lyrics found for that. Try a shorter title or a different artist spelling.</p>';
+  }catch(err){
+    console.warn('Lyrics search failed', err);
+    if(document.getElementById('lyrics-match-list')) out.innerHTML = '<p class="lyrics-hint">Couldn\u2019t reach the lyrics service right now.</p>';
+  }
+}
+
+/* ============================================================
+   8. THEMES  (accent colour + font switch)
+============================================================ */
+const ACCENT_PRESETS = [
+  { name:'Brass',  color:'#C9A15A' }, { name:'Sunset', color:'#F08A4B' }, { name:'Rose',   color:'#E8648A' },
+  { name:'Mint',   color:'#4FC7A0' }, { name:'Sky',    color:'#5AA9F0' }, { name:'Violet', color:'#9A82F5' },
+];
+function hexToRgb(hex){
+  const m = /^#([0-9a-f]{6})$/i.exec(typeof hex === 'string' ? hex : '');
+  if(!m) return null;
+  const n = parseInt(m[1], 16);
+  return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
+}
+function applyAccent(hex){
+  let c = hexToRgb(hex);
+  if(!c) return false;
+  // very dark accents would vanish against the dark interface, so lighten them just enough to stay readable
+  const lumOf = (o)=> (0.2126*o.r + 0.7152*o.g + 0.0722*o.b) / 255;
+  for(let i = 0; i < 12 && lumOf(c) < 0.3; i++){
+    c = { r: Math.round(c.r + (255 - c.r) * 0.14), g: Math.round(c.g + (255 - c.g) * 0.14), b: Math.round(c.b + (255 - c.b) * 0.14) };
+  }
+  hex = '#' + [c.r, c.g, c.b].map(v => v.toString(16).padStart(2, '0')).join('');
+  const root = document.documentElement.style;
+  const toHex = (o)=> '#' + [o.r, o.g, o.b].map(v => Math.max(0, Math.min(255, v)).toString(16).padStart(2, '0')).join('');
+  const mix = (k)=> ({ r: Math.round(c.r*k + 10*(1-k)), g: Math.round(c.g*k + 12*(1-k)), b: Math.round(c.b*k + 16*(1-k)) });
+  root.setProperty('--brass', hex.toLowerCase());
+  root.setProperty('--brass-rgb', c.r + ',' + c.g + ',' + c.b);
+  root.setProperty('--brass-soft', toHex(mix(0.55)));
+  root.setProperty('--brass-deep', toHex(mix(0.62)));
+  root.setProperty('--brass-glow', 'rgba(' + c.r + ',' + c.g + ',' + c.b + ',0.35)');
+  const lum = (0.2126*c.r + 0.7152*c.g + 0.0722*c.b) / 255;
+  root.setProperty('--on-brass', lum > 0.5 ? '#1a1408' : '#ffffff');
+  return true;
+}
+function loadAppearance(){
+  let accent = '#C9A15A', font = 'ui', size = 'm';
+  try{
+    const a = localStorage.getItem('spindle-accent'); if(hexToRgb(a)) accent = a;
+    const f = localStorage.getItem('spindle-font'); if(f === 'alt') font = 'alt';
+    const s = localStorage.getItem('spindle-lyrics-size'); if(LYRICS_SIZES.includes(s)) size = s;
+  }catch(e){}
+  state.accent = accent;
+  state.fontAlt = font === 'alt';
+  state.lyricsSize = size;
+  applyAccent(accent);
+  if(state.fontAlt) document.documentElement.setAttribute('data-font', 'alt'); else document.documentElement.removeAttribute('data-font');
+}
+function setAccent(hex, persist){
+  if(!applyAccent(hex)) return;
+  state.accent = hex.toLowerCase();
+  if(persist){ try{ localStorage.setItem('spindle-accent', state.accent); }catch(e){} }
+}
+function setFont(alt){
+  state.fontAlt = !!alt;
+  if(alt) document.documentElement.setAttribute('data-font', 'alt'); else document.documentElement.removeAttribute('data-font');
+  try{ localStorage.setItem('spindle-font', alt ? 'alt' : 'ui'); }catch(e){}
+}
+function renderAppearanceSection(){
+  const cur = (state.accent || '#C9A15A').toLowerCase();
+  const isPreset = ACCENT_PRESETS.some(p => p.color.toLowerCase() === cur);
+  return `
+    <div class="section" style="padding-top:6px;">
+      <div class="section-head"><h2 style="font-size:16px;">Appearance</h2></div>
+      <span class="field-label">Accent color</span>
+      <div class="accent-row">
+        ${ACCENT_PRESETS.map(p => `<button class="accent-swatch ${p.color.toLowerCase() === cur ? 'active' : ''}" style="background:${p.color};" data-action="set-accent" data-color="${p.color}" aria-label="${p.name}"></button>`).join('')}
+        <label class="accent-swatch custom ${isPreset ? '' : 'active'}" aria-label="Custom color"><input type="color" data-action="accent-custom" value="${escapeHtml(cur)}"></label>
+      </div>
+      <span class="field-label" style="margin-top:16px;">Font</span>
+      <div class="bg-mode-row">
+        <button class="bg-mode-btn ${state.fontAlt ? '' : 'active'}" data-action="set-font" data-font="ui"><span>Satoshi</span></button>
+        <button class="bg-mode-btn ${state.fontAlt ? 'active' : ''}" data-action="set-font" data-font="alt"><span>Manrope</span></button>
+      </div>
+      <p class="lyrics-hint" style="text-align:left;padding:8px 0 0;">Manrope only has its bold weight installed right now, so text looks heavier with it.</p>
+    </div>`;
+}
+function renderLibraryToolsSection(){
+  const n = cleanupCandidates().length;
+  return `
+    <div class="section" style="padding-top:6px;">
+      <div class="section-head"><h2 style="font-size:16px;">Library tools</h2></div>
+      <div class="settings-list">
+        <div class="settings-row"><span class="s-label">Storage protection</span><span class="value" id="storage-protect">\u2026</span></div>
+        <div class="settings-row"><span class="s-label">Space used</span><span class="value" id="storage-usage">\u2026</span></div>
+      </div>
+      <button class="pill-btn" id="persist-btn" style="width:100%;margin-top:12px;display:none;" data-action="request-persist">Protect my library storage</button>
+      <button class="pill-btn" style="width:100%;margin-top:10px;" data-action="export-backup">Export backup (playlists, edits, settings)</button>
+      <button class="pill-btn" style="width:100%;margin-top:10px;" data-action="trigger-backup-upload">Restore from backup</button>
+      <button class="pill-btn" style="width:100%;margin-top:10px;" data-action="cleanup-names" ${n ? '' : 'disabled'}>${n ? 'Clean up song names (' + n + ')' : 'Song names look clean'}</button>
+      <p class="lyrics-hint" style="text-align:left;padding:8px 0 0;">Backups hold your playlists, play counts, edits and settings \u2014 not the MP3 files themselves.</p>
+    </div>`;
+}
+
+/* ============================================================
+   10. GESTURES  (swipe the mini player, hold the seek bar)
+============================================================ */
+let suppressClickUntil = 0;
+let swipeState = null;
+function updateSeekBubble(range){
+  const b = document.getElementById('seek-bubble');
+  if(!b || !range) return;
+  const pct = parseFloat(range.value) || 0;
+  const dur = audio.duration || 0;
+  b.textContent = formatTime((pct / 100) * dur);
+  b.style.left = (range.offsetLeft + (pct / 100) * range.offsetWidth) + 'px';
+}
+function showSeekBubble(range){
+  const b = document.getElementById('seek-bubble');
+  if(!b) return;
+  updateSeekBubble(range);
+  b.classList.add('show');
+}
+function hideSeekBubble(){
+  const b = document.getElementById('seek-bubble');
+  if(b) b.classList.remove('show');
+}
+function endSwipe(cancelled){
+  const s = swipeState;
+  swipeState = null;
+  if(!s || !s.active) return;
+  s.el.classList.add('snap');
+  s.el.style.transform = '';
+  s.el.style.opacity = '';
+  suppressClickUntil = Date.now() + 350; // a swipe must not also count as a tap that opens Now Playing
+  if(cancelled) return;
+  if(s.dx <= -70) advanceTrack(false);
+  else if(s.dx >= 70) prevTrack();
+}
+document.addEventListener('pointerdown', (e)=>{
+  const inner = e.target.closest && e.target.closest('.mini-player-inner');
+  if(inner && !e.target.closest('button')){
+    swipeState = { x: e.clientX, y: e.clientY, el: inner, dx: 0, active: false, id: e.pointerId };
+  }
+  if(e.target && e.target.id === 'seek-range') showSeekBubble(e.target);
+});
+document.addEventListener('pointermove', (e)=>{
+  const s = swipeState;
+  if(!s || e.pointerId !== s.id) return;
+  const dx = e.clientX - s.x, dy = e.clientY - s.y;
+  if(!s.active){
+    if(Math.abs(dy) > 12 && Math.abs(dy) > Math.abs(dx)){ swipeState = null; return; }
+    if(Math.abs(dx) < 8) return;
+    s.active = true;
+    s.el.classList.remove('snap');
+  }
+  s.dx = dx;
+  s.el.style.transform = 'translateX(' + Math.max(-90, Math.min(90, dx * 0.6)) + 'px)';
+  s.el.style.opacity = String(1 - Math.min(0.45, Math.abs(dx) / 320));
+});
+document.addEventListener('pointerup', ()=>{ endSwipe(false); hideSeekBubble(); });
+document.addEventListener('pointercancel', ()=>{ endSwipe(true); hideSeekBubble(); });
+
+/* ============================================================
+   HELP: GUIDE + TERMS / PRIVACY / CREDITS
+============================================================ */
+function renderHelpSection(){
+  return `
+    <div class="section" style="padding-top:6px;">
+      <div class="section-head"><h2 style="font-size:16px;">Help &amp; info</h2></div>
+      <button class="pill-btn" style="width:100%;" data-action="nav-guide">How to use Spindle (guide)</button>
+      <button class="pill-btn" style="width:100%;margin-top:10px;" data-action="nav-legal">Terms, privacy &amp; credits</button>
+    </div>`;
+}
+function guideItem(title, body, open){
+  return `<details class="guide-item" ${open ? 'open' : ''}><summary>${title}</summary><div class="guide-body">${body}</div></details>`;
+}
+function renderGuide(){
+  return `
+    <div class="topbar">
+      <button class="back-home-btn" data-action="nav-settings">${ICONS.back}<span>Settings</span></button>
+      <div style="width:42px;"></div>
+    </div>
+    <div class="home-hero"><h1 style="font-size:24px;">How to use Spindle</h1><p>Tap a topic to open it.</p></div>
+    <div class="section" style="padding-top:0;">
+      ${guideItem('Getting started', `
+        <ul>
+          <li><b>Add Songs</b> (Home): pick MP3 files from your device.</li>
+          <li><b>Import ZIP</b>: pick a ZIP of MP3s. The songs are added and grouped into a playlist named after the ZIP.</li>
+          <li><b>Import Folder</b>: adds every MP3 in a folder as a playlist. This works in desktop browsers (Chrome, Edge). Most phone browsers can\u2019t pick a folder, so use Add Songs or Import ZIP there.</li>
+          <li><b>New Playlist</b>: make one, then use <b>Add</b> inside it, or a song\u2019s <b>\u22ef</b> menu, to put songs in.</li>
+          <li>The search button (top right of Home) finds songs by title or artist.</li>
+        </ul>`, true)}
+      ${guideItem('Playing music', `
+        <ul>
+          <li>Tap a song to play it. A small player appears at the bottom. <b>Tap it</b> to open the full Now Playing screen.</li>
+          <li>Now Playing has play/pause, previous, next, <b>shuffle</b>, <b>repeat</b> (tap to cycle: off \u2192 repeat all \u2192 repeat one), a volume slider and the seek bar.</li>
+          <li>The <b>sliders button</b> (top right of Now Playing) opens Sound settings: equalizer, playback speed, keep-pitch and crossfade.</li>
+          <li>The <b>music-note button</b> shows lyrics. The <b>list button</b> opens the queue.</li>
+        </ul>`)}
+      ${guideItem('Gestures (hidden shortcuts)', `
+        <ul>
+          <li><b>Swipe the mini player left</b> \u2192 next song. <b>Swipe right</b> \u2192 previous song. Short swipes and up/down drags are ignored, so scrolling is safe.</li>
+          <li><b>Press and hold the seek bar</b> \u2192 a bubble shows the time you would jump to. Slide, then let go to seek. A plain tap on the bar also jumps there.</li>
+          <li><b>Tap a lyric line</b> \u2192 jump to that moment of the song.</li>
+          <li><b>Tap the mini player</b> (not its buttons) \u2192 open Now Playing.</li>
+          <li><b>Tap \u22ef on any song</b> \u2192 Play Next, Add to Queue, Edit Song Info, add to a playlist and more.</li>
+        </ul>`)}
+      ${guideItem('Queue', `
+        <ul>
+          <li>In a song\u2019s \u22ef menu: <b>Play Next</b> puts it right after the current song. <b>Add to Queue</b> puts it at the end.</li>
+          <li>Open the queue from the <b>list button</b> on Now Playing. Tap a song to jump to it, use \u25b2 \u25bc to reorder, \u2715 to remove, or <b>Clear upcoming songs</b>.</li>
+        </ul>`)}
+      ${guideItem('Lyrics', `
+        <ul>
+          <li>Spindle looks lyrics up automatically from the song\u2019s file name (for example <i>Artist - Title.mp3</i>). This needs internet once; the lyrics are then saved on your device.</li>
+          <li><b>A\u2212 / A+</b> change the text size.</li>
+          <li><b>Wrong lyrics?</b> lets you fix the title or artist, search again, and choose a different match.</li>
+          <li><b>Replace Lyrics</b> / <b>Upload .lrc</b> loads your own lyrics file.</li>
+        </ul>`)}
+      ${guideItem('Editing song info', `
+        <ul>
+          <li>\u22ef \u2192 <b>Edit Song Info</b>: change the title, artist, album and cover. <b>Auto-find info &amp; cover</b> searches online and lets you pick the right match before saving.</li>
+          <li><b>Settings \u2192 Library tools \u2192 Clean up song names</b> reads artist and title from messy file names. Songs you edited by hand are never touched.</li>
+        </ul>`)}
+      ${guideItem('Backgrounds & looks', `
+        <ul>
+          <li><b>Settings \u2192 Background</b>: <b>Animated</b> scenes, a <b>Solid Color</b>, <b>Photo / Video</b> from your device (videos play muted on a loop), or <b>Stocked Backgrounds</b> built into the app. Pick one and it stays until you change it.</li>
+          <li><b>Settings \u2192 Appearance</b>: choose an accent color and the font.</li>
+        </ul>`)}
+      ${guideItem('Keep your library safe', `
+        <ul>
+          <li>Your songs live inside this browser\u2019s storage. If your phone runs very low on space, or you clear the browser\u2019s data, they can disappear.</li>
+          <li><b>Settings \u2192 Library tools</b> shows whether storage protection is on. Tap <b>Protect my library storage</b> if it is off.</li>
+          <li><b>Export backup</b> saves your playlists, play counts, edits, lyrics and settings to a file. It does <b>not</b> contain the MP3s. To restore: add your MP3s again, then choose <b>Restore from backup</b>.</li>
+          <li><b>Erase All Songs, Playlists &amp; History</b> cannot be undone.</li>
+        </ul>`)}
+      ${guideItem('Install as an app & offline use', `
+        <ul>
+          <li>In Chrome, open the \u22ee menu \u2192 <b>Install app</b> (or Add to Home screen). It then opens like a normal app.</li>
+          <li>After the first visit, Spindle opens and plays your songs with no internet. Only lyric and song-info lookups need a connection.</li>
+          <li>After an update, close the app completely and open it again (sometimes twice) to load the new version.</li>
+        </ul>`)}
+      ${guideItem('Smooth playback with the screen off', `
+        <ul>
+          <li>Turn the equalizer <b>off</b> and crossfade to <b>Off</b> unless you want them. They route audio through an effects engine, and plain playback is smoother and kinder to the battery.</li>
+          <li>On Android: Settings \u2192 Apps \u2192 Chrome \u2192 Battery \u2192 <b>Unrestricted</b>.</li>
+          <li>If music stutters only with Bluetooth earphones, try wired earphones or the phone speaker to check whether it is the connection.</li>
+        </ul>`)}
+      ${guideItem('Troubleshooting', `
+        <ul>
+          <li><b>No lyrics found:</b> check the song name, use <b>Wrong lyrics?</b> to search by hand, or upload an .lrc file.</li>
+          <li><b>Import Folder does nothing on my phone:</b> phone browsers usually can\u2019t pick folders. Use Add Songs or Import ZIP.</li>
+          <li><b>No notification controls:</b> they appear while a song is playing, in browsers that support media controls. Installing the app from Chrome helps.</li>
+          <li><b>The app looks old after an update:</b> close it fully and reopen it.</li>
+        </ul>`)}
+    </div>`;
+}
+function renderLegal(){
+  return `
+    <div class="topbar">
+      <button class="back-home-btn" data-action="nav-settings">${ICONS.back}<span>Settings</span></button>
+      <div style="width:42px;"></div>
+    </div>
+    <div class="home-hero"><h1 style="font-size:24px;">Terms, privacy &amp; credits</h1><p>Last updated: October 18, 2026</p></div>
+    <div class="section legal" style="padding-top:0;">
+      <h3>About Spindle</h3>
+      <p>Spindle is an independent, personal-project music player that runs in your browser. It plays audio files that you add yourself. It does not sell, stream or provide music.</p>
+
+      <h3>Privacy policy</h3>
+      <p><b>Short version:</b> Spindle has no accounts, no ads, no analytics and no tracking. Your music and settings stay on your device.</p>
+      <p><b>What is stored on your device:</b> the songs you add, playlists, play history and counts, lyrics, cover art, your settings and the app\u2019s own files (so it works offline). This is kept in your browser\u2019s storage (IndexedDB and local storage) and is not sent to us.</p>
+      <p><b>What leaves your device, and only when you use that feature:</b></p>
+      <ul>
+        <li><b>Lyrics lookup</b> (automatic when you open lyrics, and in \u201cWrong lyrics?\u201d): the song title, artist and length are sent to LRCLIB (lrclib.net) to find matching lyrics.</li>
+        <li><b>Auto-find info &amp; cover</b> (only when you tap it): the title and artist you typed are sent to Apple\u2019s iTunes Search service, and the cover image is downloaded from Apple\u2019s image servers.</li>
+        <li><b>Loading the app:</b> the app\u2019s files are hosted on GitHub Pages. Like any website, the host can see standard connection details (such as your IP address) when you open it.</li>
+      </ul>
+      <p>Your audio files, playlists and play history are never uploaded. Spindle asks these services for nothing else and sets no cookies. Links to other sites are not followed automatically, and requests are sent without a referrer.</p>
+      <p><b>Your control:</b> Settings \u2192 <b>Erase All Songs, Playlists &amp; History</b> removes your library from this device. Clearing your browser\u2019s site data or uninstalling the app also removes it. Backup files you export are stored wherever you save them, so keep them safe.</p>
+
+      <h3>Terms of use</h3>
+      <ul>
+        <li><b>Personal use.</b> Spindle is provided for personal, non-commercial use.</li>
+        <li><b>Your content.</b> You are responsible for the files you add. Only add music you own or have the right to use. Spindle does not check this and is not responsible for it.</li>
+        <li><b>Third-party content.</b> Lyrics, song information and cover art come from third-party services and belong to their owners. They are shown for your personal use only. Spindle is not affiliated with or endorsed by LRCLIB, Apple, GitHub or any artist or label.</li>
+        <li><b>Background media.</b> Images and videos in \u201cStocked Backgrounds\u201d are included for personal viewing inside the app and remain the property of their respective owners.</li>
+        <li><b>No warranty.</b> Spindle is provided \u201cas is\u201d, without warranties of any kind. It may contain bugs, lookups can be wrong or unavailable, and your browser may delete stored data (for example when the device is low on space). Back up what matters to you.</li>
+        <li><b>Liability.</b> To the extent the law allows, the maker of Spindle is not liable for lost data, lost files or any other damages from using the app.</li>
+        <li><b>Changes.</b> These terms and the privacy policy may change as the app changes. The date at the top shows the latest version.</li>
+      </ul>
+
+      <h3>Credits &amp; licenses</h3>
+      <ul>
+        <li><b>Clash Display</b> and <b>Satoshi</b> \u2014 Indian Type Foundry (Fontshare), used under the ITF Free Font License.</li>
+        <li><b>Manrope</b> \u2014 Mikhail Sharanda, SIL Open Font License 1.1.</li>
+        <li><b>JSZip</b> 3.10.1 \u2014 Stuart Knightley, MIT or GPL-3.0-or-later license.</li>
+        <li><b>jsmediatags</b> 3.9.5 \u2014 Ant\u00f3nio Afonso, BSD-3-Clause license.</li>
+        <li><b>Lyrics</b> \u2014 LRCLIB (lrclib.net) community database.</li>
+        <li><b>Song info and covers</b> \u2014 iTunes Search API, \u00a9 Apple Inc. and the respective rights holders.</li>
+        <li><b>Hosting</b> \u2014 GitHub Pages.</li>
+      </ul>
+    </div>`;
 }
 
 /* ============================================================
@@ -2597,6 +3480,18 @@ document.addEventListener('click', async (e)=>{
   const modalOverlay = e.target.closest('.modal-overlay');
   const stopEl = e.target.closest('[data-stop]');
   if(modalOverlay && !stopEl){ closeModal(); return; }
+  if(Date.now() < suppressClickUntil && e.target.closest('.mini-player-inner')) return; // that was a swipe, not a tap
+  const lyricLine = e.target.closest('.lyrics-line[data-time]');
+  if(lyricLine){
+    const tm = parseFloat(lyricLine.dataset.time);
+    if(isFinite(tm) && tm >= 0){
+      if(crossfadeInProgress) cancelCrossfade();
+      audio.currentTime = tm;
+      if(audio.paused) audio.play().catch(()=>{});
+      updateLyricsUI();
+    }
+    return;
+  }
 
   const el = e.target.closest('[data-action]');
   if(!el) return;
@@ -2604,8 +3499,79 @@ document.addEventListener('click', async (e)=>{
   const id = el.dataset.id;
 
   switch(action){
+    case 'nav-queue': state.view = 'queue'; transitionRender('forward'); break;
+    case 'queue-play-next': queuePlayNext(id); closeModal(); break;
+    case 'queue-add': queueAdd(id); closeModal(); break;
+    case 'queue-jump': {
+      const pos = parseInt(el.dataset.pos, 10);
+      if(pos > state.currentIndex && pos < state.playOrder.length){ state.currentIndex = pos; loadAndPlayCurrent(); }
+      break;
+    }
+    case 'queue-up': case 'queue-down': {
+      const pos = parseInt(el.dataset.pos, 10);
+      const other = action === 'queue-up' ? pos - 1 : pos + 1;
+      if(pos > state.currentIndex && other > state.currentIndex && other < state.playOrder.length){
+        if(crossfadeInProgress) cancelCrossfade();
+        const tmp = state.playOrder[pos]; state.playOrder[pos] = state.playOrder[other]; state.playOrder[other] = tmp;
+        render();
+      }
+      break;
+    }
+    case 'queue-remove': {
+      if(crossfadeInProgress) cancelCrossfade();
+      removeFromQueueAt(parseInt(el.dataset.pos, 10));
+      render();
+      break;
+    }
+    case 'queue-clear': {
+      if(crossfadeInProgress) cancelCrossfade();
+      for(let p = state.playOrder.length - 1; p > state.currentIndex; p--) removeFromQueueAt(p);
+      render();
+      showToast('Upcoming songs cleared.');
+      break;
+    }
+    case 'edit-track': openEditTrackModal(id); break;
+    case 'pick-track-cover': document.getElementById('file-input-track-cover').click(); break;
+    case 'remove-track-cover': if(editingTrackDraft){ editingTrackDraft.coverArt = null; setTrackCoverPreview(null); } break;
+    case 'track-autofind': autoFindTrackInfo(); break;
+    case 'apply-track-match': applyTrackMatch(parseInt(el.dataset.index, 10)); break;
+    case 'save-track-edit': await saveTrackEdit(); break;
+    case 'cleanup-names': await cleanupSongNames(); break;
+    case 'export-backup': await exportBackup(); break;
+    case 'trigger-backup-upload': document.getElementById('file-input-backup').click(); break;
+    case 'request-persist': {
+      const ok = await requestPersistentStorage();
+      showToast(ok ? 'Your library storage is now protected.' : 'Your browser didn\u2019t grant protection. Installing Spindle and using it regularly helps.');
+      refreshStorageInfo();
+      break;
+    }
+    case 'set-accent': setAccent(el.dataset.color, true); render(); break;
+    case 'set-font': setFont(el.dataset.font === 'alt'); render(); break;
+    case 'lyrics-size': {
+      const i = LYRICS_SIZES.indexOf(state.lyricsSize);
+      const ni = Math.max(0, Math.min(LYRICS_SIZES.length - 1, i + (parseInt(el.dataset.dir, 10) || 0)));
+      state.lyricsSize = LYRICS_SIZES[ni];
+      try{ localStorage.setItem('spindle-lyrics-size', state.lyricsSize); }catch(err){}
+      render(); updateLyricsUI();
+      break;
+    }
+    case 'open-lyrics-match': openLyricsMatchModal(); break;
+    case 'lyrics-search': searchLyricsMatches(); break;
+    case 'apply-lyrics-match': {
+      const m = lyricsMatchResults[parseInt(el.dataset.index, 10)];
+      const track = getCurrentPlayingTrack();
+      if(m && track){
+        if(await replaceLyricsForTrack(track, m.synced, m.plain)){
+          closeModal(); render(); updateLyricsUI();
+          showToast(m.synced ? 'Synced lyrics applied.' : 'Lyrics applied (not time-synced).');
+        }
+      }
+      break;
+    }
     case 'nav-home': state.view = 'home'; transitionRender('backward'); break;
-    case 'nav-settings': state.view = 'settings'; transitionRender('forward'); break;
+    case 'nav-settings': { const back = state.view === 'guide' || state.view === 'legal'; state.view = 'settings'; transitionRender(back ? 'backward' : 'forward'); break; }
+    case 'nav-guide': state.view = 'guide'; transitionRender('forward'); break;
+    case 'nav-legal': state.view = 'legal'; transitionRender('forward'); break;
     case 'nav-search': state.view = 'search'; transitionRender('forward'); break;
     case 'nav-now-playing':
       if(state.baseQueue.length){ state.view = 'now-playing'; transitionRender('forward'); if(state.isPlaying) startVisualizerLoop(); }
@@ -2636,6 +3602,7 @@ document.addEventListener('click', async (e)=>{
     }
     case 'toggle-eq': {
       state.eq.enabled = !state.eq.enabled;
+      if(state.eq.enabled) ensureAudioGraph(); // user gesture: safe to start the audio engine now
       applyEqToFilters();
       persistEqSettings();
       openModalHtml(renderEqModalBody());
@@ -2647,6 +3614,7 @@ document.addEventListener('click', async (e)=>{
       if(preset){
         state.eq.bands = preset.bands.slice();
         state.eq.preset = presetKey;
+        if(state.eq.enabled) ensureAudioGraph();
         applyEqToFilters();
         persistEqSettings();
         openModalHtml(renderEqModalBody());
@@ -2817,6 +3785,9 @@ document.addEventListener('input', (e)=>{
     const dur = audio.duration || 0;
     const curLabel = document.getElementById('seek-current-label');
     if(curLabel) curLabel.textContent = formatTime((pct/100) * dur);
+    showSeekBubble(e.target);
+  } else if(action === 'accent-custom'){
+    setAccent(e.target.value, false); // live preview while the colour picker is open
   } else if(action === 'volume-range'){
     const v = parseFloat(e.target.value);
     state.volume = v;
@@ -2846,6 +3817,7 @@ document.addEventListener('input', (e)=>{
     if(!isNaN(idx) && !isNaN(db)){
       state.eq.bands[idx] = db;
       state.eq.preset = 'custom';
+      if(state.eq.enabled) ensureAudioGraph();
       if(eqFilters[idx]) eqFilters[idx].gain.value = state.eq.enabled ? db : 0;
       const label = document.getElementById('eq-band-label-' + idx);
       if(label) label.textContent = (db>0?'+':'') + db + 'dB';
@@ -2863,6 +3835,7 @@ document.addEventListener('input', (e)=>{
     const secs = parseInt(e.target.value, 10);
     if(!isNaN(secs)){
       state.crossfadeSeconds = secs;
+      if(secs > 0) ensureAudioGraph();
       const label = document.getElementById('crossfade-seconds-label');
       if(label) label.textContent = secs === 0 ? 'Off' : secs + 's';
     }
@@ -2871,7 +3844,11 @@ document.addEventListener('input', (e)=>{
 
 document.addEventListener('change', (e)=>{
   const action = e.target.dataset && e.target.dataset.action;
-  if(action === 'seek-range'){
+  if(action === 'accent-custom'){
+    setAccent(e.target.value, true);
+    render();
+  } else if(action === 'seek-range'){
+    hideSeekBubble();
     if(crossfadeInProgress) cancelCrossfade();
     state.scrubbing = false;
     const pct = parseFloat(e.target.value);
@@ -2908,6 +3885,21 @@ document.getElementById('file-input-cover').addEventListener('change', (e)=>{
   };
   reader.readAsDataURL(file);
   e.target.value = '';
+});
+document.getElementById('file-input-track-cover').addEventListener('change', async (e)=>{
+  const file = e.target.files[0];
+  e.target.value = '';
+  if(!file || !editingTrackDraft) return;
+  if(!/^image\//.test(file.type) && !/\.(jpe?g|png|webp|gif|jfif|avif)$/i.test(file.name)){ showToast('Please pick an image.'); return; }
+  try{
+    const url = await imageBlobToCoverDataUrl(file, 512);
+    if(editingTrackDraft){ editingTrackDraft.coverArt = url; setTrackCoverPreview(url); }
+  }catch(err){ showToast('Couldn\u2019t read that image.'); }
+});
+document.getElementById('file-input-backup').addEventListener('change', async (e)=>{
+  const file = e.target.files[0];
+  e.target.value = '';
+  if(file) await restoreBackupFile(file);
 });
 document.getElementById('file-input-bg-photo').addEventListener('change', async (e)=>{
   const file = e.target.files[0];
@@ -3017,6 +4009,7 @@ window.addEventListener('beforeunload', ()=>{
    INIT
 ============================================================ */
 async function init(){
+  loadAppearance();
   setupMediaSession();
   try{
     const savedVol = parseFloat(localStorage.getItem('spindle-volume'));
@@ -3061,6 +4054,7 @@ async function init(){
   }
 
   render();
+  requestPersistentStorage(); // ask the browser not to clear the library when space runs low
 }
 init();
 
