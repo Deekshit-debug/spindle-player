@@ -13,7 +13,7 @@
  * simply inert \u2014 it changes nothing and breaks nothing.
  */
 
-const CACHE_NAME = 'spindle-cache-v12';
+const CACHE_NAME = 'spindle-cache-v13';
 
 // Bump this whenever CORE_ASSETS changes, so old caches get cleaned up on the next visit.
 const CORE_ASSETS = [

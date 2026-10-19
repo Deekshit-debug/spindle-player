@@ -1976,6 +1976,7 @@ async function handleFilesSelected(fileList){
     return;
   }
   showToast('Adding ' + valid.length + ' song' + (valid.length>1?'s':'') + '\u2026');
+  const noTagReader = typeof jsmediatags === 'undefined';
   const newIds = [];
   for(const file of valid){
     try{
@@ -2013,6 +2014,9 @@ async function handleFilesSelected(fileList){
   }
   state.pendingUploadPlaylistId = null;
   render();
+  if(noTagReader && newIds.length){
+    setTimeout(()=> showToast('Heads up: vendor/jsmediatags.min.js didn\u2019t load, so covers and artists can\u2019t be read. Upload the \u201cvendor\u201d folder, then use Settings \u2192 Re-read song info.'), 1800);
+  }
   (async()=>{
     for(const id of newIds){
       const t = state.tracks.find(x => x.id === id);
@@ -2024,7 +2028,7 @@ async function handleFilesSelected(fileList){
 async function handleZipSelected(file){
   if(!file) return;
   if(typeof JSZip === 'undefined'){
-    showToast('ZIP import needs an internet connection the first time it\u2019s used.');
+    showToast('ZIP import can\u2019t run: the file vendor/jszip.min.js didn\u2019t load. Upload the \u201cvendor\u201d folder to your site.');
     return;
   }
   showToast('Reading ZIP\u2026');
@@ -3378,6 +3382,53 @@ function renderAppearanceSection(){
       <p class="lyrics-hint" style="text-align:left;padding:8px 0 0;">Manrope only has its bold weight installed right now, so text looks heavier with it.</p>
     </div>`;
 }
+
+/* ---------- Re-read song info (tags) from the stored files ---------- */
+let rereadRunning = false;
+function artistFromTags(metaArtist, fileName){
+  const a = (metaArtist || '').trim();
+  if(a && !isJunkArtist(a)) return a;
+  return parseFileName(fileName || '').artist || 'Unknown Artist';
+}
+async function rereadAllTags(){
+  if(rereadRunning) return;
+  if(typeof jsmediatags === 'undefined'){
+    showToast('The tag reader isn\u2019t loaded. Upload the \u201cvendor\u201d folder to your site first.');
+    return;
+  }
+  const targets = state.tracks.filter(t => !t.edited);
+  if(!targets.length){ showToast('Nothing to re-read.'); return; }
+  if(!confirm('Re-read titles, artists, albums and covers from ' + targets.length + ' song file' + (targets.length === 1 ? '' : 's') + '? Songs you edited by hand are skipped.')) return;
+  rereadRunning = true;
+  let updated = 0, noTags = 0, done = 0;
+  try{
+    for(const t of targets){
+      done++;
+      if(done % 8 === 0) showToast('Re-reading\u2026 ' + done + ' / ' + targets.length);
+      try{
+        const full = await idbGet('tracks', t.id);
+        if(!full || !full.fileBlob) continue;
+        const meta = await extractTags(full.fileBlob);
+        if(!(meta.title || meta.artist || meta.album || meta.coverArt)){ noTags++; continue; }
+        const changes = {};
+        if(meta.title && meta.title.trim()) changes.title = meta.title.trim().slice(0, 150);
+        changes.artist = artistFromTags(meta.artist, full.fileName).slice(0, 150);
+        if(meta.album && meta.album.trim()) changes.album = meta.album.trim().slice(0, 150);
+        if(meta.coverArt) changes.coverArt = meta.coverArt;
+        if(!full.embeddedLyrics && meta.embeddedLyrics) changes.embeddedLyrics = meta.embeddedLyrics;
+        Object.assign(full, changes);
+        await idbPut('tracks', full);
+        Object.assign(t, changes);
+        updated++;
+      }catch(err){ console.warn('Re-read failed for', t.id, err); }
+    }
+  } finally { rereadRunning = false; }
+  const cur = getCurrentPlayingTrack();
+  if(cur) updateMediaSessionMetadata(cur);
+  render();
+  showToast('Re-read finished: ' + updated + ' updated' + (noTags ? ', ' + noTags + ' had no readable tags (their names come from the file name)' : '') + '.');
+}
+
 function renderLibraryToolsSection(){
   const n = cleanupCandidates().length;
   return `
@@ -3386,10 +3437,14 @@ function renderLibraryToolsSection(){
       <div class="settings-list">
         <div class="settings-row"><span class="s-label">Storage protection</span><span class="value" id="storage-protect">\u2026</span></div>
         <div class="settings-row"><span class="s-label">Space used</span><span class="value" id="storage-usage">\u2026</span></div>
+        <div class="settings-row"><span class="s-label">Tag reader (covers, artists)</span><span class="value">${typeof jsmediatags === 'undefined' ? 'Missing' : 'Ready'}</span></div>
+        <div class="settings-row"><span class="s-label">ZIP import</span><span class="value">${typeof JSZip === 'undefined' ? 'Missing' : 'Ready'}</span></div>
       </div>
+      ${(typeof jsmediatags === 'undefined' || typeof JSZip === 'undefined') ? '<p class="lyrics-hint" style="text-align:left;padding:8px 0 0;color:#e8a0a0;">Part of the app didn\u2019t load. Upload the \u201cvendor\u201d folder (jszip.min.js and jsmediatags.min.js) to your GitHub site, then reopen the app.</p>' : ''}
       <button class="pill-btn" id="persist-btn" style="width:100%;margin-top:12px;display:none;" data-action="request-persist">Protect my library storage</button>
       <button class="pill-btn" style="width:100%;margin-top:10px;" data-action="export-backup">Export backup (playlists, edits, settings)</button>
       <button class="pill-btn" style="width:100%;margin-top:10px;" data-action="trigger-backup-upload">Restore from backup</button>
+      <button class="pill-btn" style="width:100%;margin-top:10px;" data-action="reread-tags">Re-read song info from files</button>
       <button class="pill-btn" style="width:100%;margin-top:10px;" data-action="cleanup-names" ${n ? '' : 'disabled'}>${n ? 'Clean up song names (' + n + ')' : 'Song names look clean'}</button>
       <p class="lyrics-hint" style="text-align:left;padding:8px 0 0;">Backups hold your playlists, play counts, edits and settings \u2014 not the MP3 files themselves.</p>
     </div>`;
@@ -3515,6 +3570,7 @@ function renderGuide(){
       ${guideItem('Editing song info', `
         <ul>
           <li>\u22ef \u2192 <b>Edit Song Info</b>: change the title, artist, album and cover. <b>Auto-find info &amp; cover</b> searches online and lets you pick the right match before saving.</li>
+          <li><b>Settings \u2192 Library tools \u2192 Re-read song info from files</b> reloads titles, artists, albums and covers from the MP3 files themselves (songs you edited by hand are skipped).</li>
           <li><b>Settings \u2192 Library tools \u2192 Clean up song names</b> reads artist and title from messy file names. Songs you edited by hand are never touched.</li>
         </ul>`)}
       ${guideItem('Backgrounds & looks', `
@@ -3546,6 +3602,7 @@ function renderGuide(){
           <li><b>No lyrics found:</b> check the song name, use <b>Wrong lyrics?</b> to search by hand, or upload an .lrc file.</li>
           <li><b>Import Folder does nothing on my phone:</b> phone browsers usually can\u2019t pick folders. Use Add Songs or Import ZIP.</li>
           <li><b>No notification controls:</b> they appear while a song is playing, in browsers that support media controls. Installing the app from Chrome helps.</li>
+          <li><b>Covers or artists are missing, or ZIP import fails:</b> the \u201cvendor\u201d folder is probably missing from your GitHub site. Settings \u2192 Library tools shows whether the tag reader and ZIP import are Ready. After fixing it, use <b>Re-read song info from files</b>.</li>
           <li><b>The app looks old after an update:</b> close it fully and reopen it.</li>
         </ul>`)}
     </div>`;
@@ -3662,6 +3719,7 @@ document.addEventListener('click', async (e)=>{
     case 'apply-track-match': applyTrackMatch(parseInt(el.dataset.index, 10)); break;
     case 'save-track-edit': await saveTrackEdit(); break;
     case 'cleanup-names': await cleanupSongNames(); break;
+    case 'reread-tags': await rereadAllTags(); break;
     case 'export-backup': await exportBackup(); break;
     case 'trigger-backup-upload': document.getElementById('file-input-backup').click(); break;
     case 'request-persist': {
