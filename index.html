@@ -1042,7 +1042,8 @@ audio.addEventListener('timeupdate', updateProgressUI);
 audio.addEventListener('timeupdate', keepAudioAlive);
 audio.addEventListener('timeupdate', ()=> maybeStartCrossfade());
 audio.addEventListener('timeupdate', updateLyricsUI);
-audio.addEventListener('ended', ()=>{ if(!crossfadeInProgress) advanceTrack(true); });
+let loadSeq = 0, loadInFlight = false; // newest track request wins; ignore 'ended' while a new song is loading
+audio.addEventListener('ended', ()=>{ if(!crossfadeInProgress && !loadInFlight) advanceTrack(true); });
 audio.addEventListener('error', ()=>{
   if(state.baseQueue.length){ showToast('Couldn\u2019t play that track \u2014 skipping.'); advanceTrack(true); }
 });
@@ -1072,7 +1073,7 @@ document.addEventListener('visibilitychange', keepAudioAlive);
 document.addEventListener('visibilitychange', ()=>{ if(!document.hidden){ updateProgressUI(); updateLyricsUI(); syncPlayPauseUI(); } });
 function ensureAudioGraph(){
   if(audioCtx) { if(audioCtx.state === 'suspended') audioCtx.resume().catch(()=>{}); return; }
-  setTimeout(()=>{ if(analyserNode){ document.querySelectorAll('.visualizer').forEach(el=>el.classList.remove('fake')); startVisualizerLoop(); } }, 50);
+  setTimeout(()=>{ if(analyserNode){ releaseViz(); document.querySelectorAll('.visualizer').forEach(el=>el.classList.remove('fake')); startVisualizerLoop(); } }, 50);
   try{
     const Ctx = window.AudioContext || window.webkitAudioContext;
     if(!Ctx) return;
@@ -1161,17 +1162,76 @@ function loadPlaybackSettings(){
   audio.playbackRate = state.playbackRate;
   applyPreservesPitch(audio, state.preservesPitch);
 }
+// The wave listens to a copy of the sound (captureStream), so the music itself still plays through the
+// browser's normal, smooth path. It only runs while Now Playing is on screen, and sleeps when the screen is off.
+let vizCtx = null, vizAnalyser = null, vizData = null, vizSource = null, vizStream = null, vizBoundSrc = null, vizZeroFrames = 0, vizLastRebind = 0;
+const vizSupported = typeof HTMLMediaElement !== 'undefined' && ('captureStream' in HTMLMediaElement.prototype || 'mozCaptureStream' in HTMLMediaElement.prototype);
+function suspendViz(){ if(vizCtx && vizCtx.state === 'running') vizCtx.suspend().catch(()=>{}); }
+// Fully let go of the copy of the sound. Used whenever the app is hidden or Now Playing is closed, so the
+// <audio> element is left exactly as the media notification expects it.
+function releaseViz(){
+  if(vizSource){ try{ vizSource.disconnect(); }catch(e){} vizSource = null; }
+  if(vizStream){ try{ vizStream.getTracks().forEach(t => t.stop()); }catch(e){} vizStream = null; }
+  vizBoundSrc = null;
+  suspendViz();
+}
+function ensureVizAnalyser(){
+  if(!vizSupported) return false;
+  try{
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if(!Ctx) return false;
+    if(!vizCtx){
+      try{ vizCtx = new Ctx({ latencyHint: 'playback' }); }catch(e){ vizCtx = new Ctx(); }
+      vizAnalyser = vizCtx.createAnalyser();
+      vizAnalyser.fftSize = 64;
+      vizAnalyser.smoothingTimeConstant = 0.75;
+      vizData = new Uint8Array(vizAnalyser.frequencyBinCount);
+    }
+    if(vizCtx.state === 'suspended') vizCtx.resume().catch(()=>{});
+    if(vizBoundSrc !== audio.src && audio.readyState >= 2 && !audio.paused && !document.hidden && state.view === 'now-playing'){
+      if(vizSource){ try{ vizSource.disconnect(); }catch(e){} vizSource = null; }
+      if(vizStream){ try{ vizStream.getTracks().forEach(t => t.stop()); }catch(e){} vizStream = null; }
+      const stream = (audio.captureStream || audio.mozCaptureStream).call(audio);
+      if(!stream.getAudioTracks().length){ try{ stream.getTracks().forEach(t => t.stop()); }catch(e){} return true; } // not ready yet, try next frame
+      vizStream = stream;
+      vizSource = vizCtx.createMediaStreamSource(stream);
+      vizSource.connect(vizAnalyser); // on purpose NOT connected to the speakers
+      vizBoundSrc = audio.src;
+    }
+    return true;
+  }catch(e){ return false; }
+}
+document.addEventListener('visibilitychange', ()=>{
+  if(document.hidden) releaseViz();
+  else if(state.isPlaying && state.view === 'now-playing') startVisualizerLoop();
+});
 function startVisualizerLoop(){
   if(vizRAF) return;
   function tick(){
-    if(!analyserNode || state.view !== 'now-playing' || !state.isPlaying){ vizRAF = null; return; }
-    analyserNode.getByteFrequencyData(visualizerData);
+    if(state.view !== 'now-playing' || document.hidden){ vizRAF = null; releaseViz(); return; }
+    if(!state.isPlaying){ vizRAF = null; suspendViz(); return; }
+    let an = analyserNode, data = visualizerData;
+    if(!an){
+      if(!ensureVizAnalyser()){ vizRAF = null; return; } // not supported: the CSS animation is used instead
+      an = vizAnalyser; data = vizData;
+    }
+    an.getByteFrequencyData(data);
+    const visualizerData_ = data;
+    // self-repair: if the copy of the sound stays silent while music is playing (e.g. it attached too early
+    // after a song change), attach to it again. Rebinding is limited to once every 2 seconds.
+    if(an === vizAnalyser){
+      let any = 0; for(let k = 0; k < data.length; k++){ any |= data[k]; }
+      if(any){ vizZeroFrames = 0; }
+      else if(++vizZeroFrames > 45 && !audio.paused && Date.now() - vizLastRebind > 2000){
+        vizZeroFrames = 0; vizLastRebind = Date.now(); vizBoundSrc = null;
+      }
+    }
     const bars = document.querySelectorAll('#visualizer-bars span');
     if(bars.length){
-      const bucket = Math.max(1, Math.floor(visualizerData.length / bars.length));
+      const bucket = Math.max(1, Math.floor(visualizerData_.length / bars.length));
       bars.forEach((bar, i)=>{
         let sum = 0, count = 0;
-        for(let j = i*bucket; j < (i+1)*bucket && j < visualizerData.length; j++){ sum += visualizerData[j]; count++; }
+        for(let j = i*bucket; j < (i+1)*bucket && j < visualizerData_.length; j++){ sum += visualizerData_[j]; count++; }
         const avg = count ? sum / count : 0;
         bar.style.height = Math.max(4, Math.min(34, (avg/255)*34)) + 'px';
       });
@@ -1323,9 +1383,13 @@ async function loadAndPlayCurrent(){
   const trackId = state.baseQueue[baseIndex];
   const track = getTrackById(trackId);
   if(!track){ advanceTrack(true); return; }
+  const seq = ++loadSeq;
+  loadInFlight = true;
   try{
-    await loadTrackIntoAudio(track);
+    const ok = await loadTrackIntoAudio(track, seq);
+    if(!ok || seq !== loadSeq) return; // a newer request replaced this one
     await audio.play();
+    if(seq !== loadSeq) return;
     updateMediaSessionMetadata(track);
     if('mediaSession' in navigator){
       try{ navigator.mediaSession.setPositionState({ duration: audio.duration||0, playbackRate:1, position:0 }); }catch(e){}
@@ -1333,9 +1397,13 @@ async function loadAndPlayCurrent(){
     logPlay(track); // fire-and-forget: records history + increments play count
     render();
   }catch(err){
+    if(seq !== loadSeq) return; // superseded, not a real failure
     console.error(err);
     showToast('That track is missing or unsupported \u2014 skipping.');
+    loadInFlight = false;
     advanceTrack(true);
+  }finally{
+    if(seq === loadSeq) loadInFlight = false;
   }
 }
 
@@ -1360,9 +1428,10 @@ async function logPlay(track){
   }catch(e){ console.warn('Failed to log play', e); }
 }
 
-async function loadTrackIntoAudio(track){
+async function loadTrackIntoAudio(track, seq){
   if(state.currentObjectURL){ URL.revokeObjectURL(state.currentObjectURL); state.currentObjectURL = null; }
   const full = await idbGet('tracks', track.id);
+  if(seq !== undefined && seq !== loadSeq) return false; // a newer request already took over: don't touch the player
   const blob = full && full.fileBlob;
   if(!blob) throw new Error('Missing audio blob for ' + track.id);
   const url = URL.createObjectURL(blob);
@@ -1372,12 +1441,15 @@ async function loadTrackIntoAudio(track){
   audio.playbackRate = state.playbackRate;
   applyPreservesPitch(audio, state.preservesPitch);
   await new Promise((resolve, reject)=>{
+    let timer = null;
+    function cleanup(){ clearTimeout(timer); audio.removeEventListener('loadedmetadata', onLoaded); audio.removeEventListener('error', onErr); }
     function onLoaded(){ cleanup(); resolve(); }
     function onErr(){ cleanup(); reject(new Error('Audio failed to load')); }
-    function cleanup(){ audio.removeEventListener('loadedmetadata', onLoaded); audio.removeEventListener('error', onErr); }
     audio.addEventListener('loadedmetadata', onLoaded, { once:true });
     audio.addEventListener('error', onErr, { once:true });
+    timer = setTimeout(()=>{ cleanup(); reject(new Error('Audio load timed out')); }, 15000);
   });
+  return seq === undefined || seq === loadSeq;
 }
 
 function advanceTrack(auto){
@@ -1730,6 +1802,11 @@ function parseLRC(text){
   result.sort((a,b)=> a.time - b.time);
   return result;
 }
+// While you scroll the lyrics yourself, auto-follow pauses (about 8 seconds) so you can look around and tap a line.
+let lyricsFreeScrollUntil = 0;
+['touchstart', 'touchmove', 'wheel', 'pointerdown'].forEach(ev => document.addEventListener(ev, (e)=>{
+  if(e.target && e.target.closest && e.target.closest('#lyrics-scroll')) lyricsFreeScrollUntil = Date.now() + 8000;
+}, { passive: true }));
 function updateLyricsUI(){
   if(!state.showLyrics || document.hidden) return;
   const scrollEl = document.getElementById('lyrics-scroll');
@@ -1743,7 +1820,7 @@ function updateLyricsUI(){
     else break;
   }
   lines.forEach((el,i)=> el.classList.toggle('active', i===activeIdx));
-  if(activeIdx >= 0){
+  if(activeIdx >= 0 && Date.now() >= lyricsFreeScrollUntil){
     const activeEl = lines[activeIdx];
     const target = activeEl.offsetTop - scrollEl.clientHeight/2 + activeEl.clientHeight/2;
     scrollEl.scrollTo({ top: Math.max(0, target), behavior:'smooth' });
@@ -1765,22 +1842,53 @@ function parseFileName(fileName){
   if(m.length >= 2){ artist = m[0].trim(); title = m.slice(1).join(' - ').trim(); }
   return { artist, title: title || stripExt(fileName || '') };
 }
-function lookupNames(track){
-  const hasRealArtist = track.artist && track.artist !== 'Unknown Artist';
-  if(hasRealArtist && track.title && track.title !== stripExt(track.fileName || '')) return { artist: track.artist, title: track.title };
-  const p = parseFileName(track.fileName || track.title || '');
-  return { artist: p.artist || (hasRealArtist ? track.artist : ''), title: p.title };
+// Artists that are really a download site's watermark (e.g. "SpotiDownloader.com") are not real artists
+const JUNK_ARTIST = /(\.(com|net|org|io|co|in|me|app|xyz|cc)\b|downloader|ytmp3|y2mate|spotdl|\bwww\b|\bmp3\b)/i;
+function isJunkArtist(a){ return !a || a === 'Unknown Artist' || JUNK_ARTIST.test(a); }
+// Every sensible (artist, title) reading of a song, best guess first. The lyrics search tries them in turn,
+// so it still works when tags are junk, the order is "Title - Artist", or the file name has no artist at all.
+function lyricsCandidates(track){
+  const out = [], seen = new Set();
+  const add = (artist, title)=>{
+    artist = (artist || '').replace(/\s+/g, ' ').trim();
+    title = (title || '').replace(/\s+/g, ' ').trim();
+    if(!title || title.length > 150) return;
+    const k = (artist + '|' + title).toLowerCase();
+    if(seen.has(k)) return;
+    seen.add(k); out.push({ artist, title });
+  };
+  const tagArtist = isJunkArtist(track.artist) ? '' : track.artist;
+  const tagTitle = (track.title || '').trim();
+  const fileBase = stripExt(track.fileName || '');
+  const hasTitleTag = !!tagTitle && tagTitle !== fileBase;   // from the tags (or edited), not just the file name
+  const fromFile = parseFileName(track.fileName || '');
+  const fromTitle = hasTitleTag ? parseFileName(tagTitle + '.mp3') : { artist: '', title: '' }; // splits "A - B" inside a title tag
+  if(track.edited) add(tagArtist, tagTitle);
+  if(tagArtist && hasTitleTag) add(tagArtist, fromTitle.artist ? fromTitle.title : tagTitle);
+  if(fromFile.artist) add(fromFile.artist, fromFile.title);
+  if(fromTitle.artist){ add(fromTitle.artist, fromTitle.title); add(fromTitle.title, fromTitle.artist); }
+  if(tagArtist) add(tagArtist, tagTitle);
+  add('', fromFile.title);
+  if(hasTitleTag) add('', fromTitle.artist ? fromTitle.title : tagTitle);
+  for(const c of out.slice()){
+    const t2 = c.title.replace(/\s*[\(\[]?\s*(feat|ft)\.?\s[^\)\]]*[\)\]]?/i, '').trim();
+    if(t2 && t2 !== c.title) add(c.artist, t2);
+  }
+  return out.slice(0, 7);
 }
-const lyricsTried = new Set(); // tracks already auto-searched this session
+function lookupNames(track){
+  return lyricsCandidates(track)[0] || { artist: '', title: stripExt(track.fileName || '') };
+}
+const lyricsTried = new Set();    // songs already auto-searched this session
+const lyricsInFlight = new Set(); // songs being searched right now (one lookup per song, never a global lock)
 async function autoFetchLyrics(track){
-  if(!track || track.lyricsLRC || track.embeddedLyrics || lyricsTried.has(track.id)) return;
+  if(!track || track.lyricsLRC || track.embeddedLyrics || lyricsTried.has(track.id) || lyricsInFlight.has(track.id)) return;
   if(!navigator.onLine) return;
   lyricsTried.add(track.id);
   await fetchLyricsOnline(track, true);
 }
 
 /* ---------- Online lyrics lookup (LRCLIB \u2014 free, open, no key required) ---------- */
-let lyricsLookupInProgress = false;
 async function saveLyricsForTrack(track, syncedLyrics, plainLyrics){
   const full = await idbGet('tracks', track.id);
   if(full){
@@ -1791,41 +1899,46 @@ async function saveLyricsForTrack(track, syncedLyrics, plainLyrics){
   if(syncedLyrics) track.lyricsLRC = syncedLyrics;
   else if(plainLyrics) track.embeddedLyrics = plainLyrics;
 }
+function pickBestLyrics(results, duration){
+  const ok = (Array.isArray(results) ? results : []).filter(r => r && (r.syncedLyrics || r.plainLyrics));
+  if(!ok.length) return null;
+  // when the song's length is known, only accept a result that is about as long (stops wrong-song lyrics)
+  const pool = duration ? ok.filter(r => Math.abs((Number(r.duration) || 0) - duration) <= 8) : ok;
+  return pool.find(r => r.syncedLyrics) || pool.find(r => r.plainLyrics) || null;
+}
 async function fetchLyricsOnline(track, silent){
-  if(lyricsLookupInProgress) return;
+  if(lyricsInFlight.has(track.id)) return;
   if(!navigator.onLine){
     if(!silent) showToast('You\u2019re offline \u2014 can\u2019t search for lyrics online right now.');
     return;
   }
-  lyricsLookupInProgress = true;
+  lyricsInFlight.add(track.id);
   if(!silent) showToast('Searching for lyrics\u2026');
-  const names = lookupNames(track);
+  const dur = track.duration ? Math.round(track.duration) : 0;
   try{
-    // Exact lookup first (title + artist + duration gives the most reliable match).
-    const exactParams = new URLSearchParams({ track_name: names.title || '', artist_name: names.artist || '' });
-    if(track.duration) exactParams.set('duration', String(Math.round(track.duration)));
     let found = null;
-    try{
-      const res = await fetch('https://lrclib.net/api/get?' + exactParams.toString());
-      if(res.ok){
-        const data = await res.json();
-        if(data && (data.syncedLyrics || data.plainLyrics)) found = data;
+    const cands = lyricsCandidates(track);
+    for(const c of cands){
+      if(found) break;
+      if(c.artist){
+        // 1) exact lookup (title + artist + length) is the most reliable match
+        try{
+          const p = new URLSearchParams({ track_name: c.title, artist_name: c.artist });
+          if(dur) p.set('duration', String(dur));
+          const res = await fetch('https://lrclib.net/api/get?' + p.toString());
+          if(res.ok){ const d = await res.json(); if(d && (d.syncedLyrics || d.plainLyrics)) found = d; }
+        }catch(e){ /* try the next way */ }
+        if(found) break;
       }
-    }catch(e){ /* fall through to fuzzy search below */ }
-
-    if(!found){
-      const q = [names.artist, names.title].filter(Boolean).join(' ').trim() || names.title || '';
-      const res2 = await fetch('https://lrclib.net/api/search?' + new URLSearchParams({ q }).toString());
-      if(res2.ok){
-        const results = await res2.json();
-        if(Array.isArray(results) && results.length){
-          found = results.find(r => r.syncedLyrics) || results.find(r => r.plainLyrics) || null;
-        }
-      }
+      // 2) fuzzy search with this reading of the name
+      try{
+        const q = [c.artist, c.title].filter(Boolean).join(' ');
+        const res2 = await fetch('https://lrclib.net/api/search?' + new URLSearchParams({ q }).toString());
+        if(res2.ok) found = pickBestLyrics(await res2.json(), dur);
+      }catch(e){ /* try the next reading */ }
     }
-
-    if(!found || (!found.syncedLyrics && !found.plainLyrics)){
-      if(!silent) showToast('No lyrics found online for this song.');
+    if(!found){
+      if(!silent) showToast('No lyrics found automatically \u2014 tap \u201cSearch manually\u201d to look by title and artist.');
       return;
     }
     await saveLyricsForTrack(track, found.syncedLyrics || null, found.plainLyrics || null);
@@ -1835,7 +1948,7 @@ async function fetchLyricsOnline(track, silent){
     console.error('Online lyrics lookup failed', err);
     if(!silent) showToast('Couldn\u2019t reach the lyrics service \u2014 try again later, or upload an .lrc file.');
   }finally{
-    lyricsLookupInProgress = false;
+    lyricsInFlight.delete(track.id);
   }
 }
 
@@ -1870,7 +1983,7 @@ async function handleFilesSelected(fileList){
       const track = {
         id: uid('trk'),
         title: (meta.title && meta.title.trim()) || parseFileName(file.name).title,
-        artist: (meta.artist && meta.artist.trim()) || parseFileName(file.name).artist || 'Unknown Artist',
+        artist: (meta.artist && meta.artist.trim() && !isJunkArtist(meta.artist.trim())) ? meta.artist.trim() : (parseFileName(file.name).artist || 'Unknown Artist'),
         album: (meta.album && meta.album.trim()) || '',
         duration: duration || 0,
         coverArt: meta.coverArt || null,
@@ -2295,7 +2408,7 @@ function renderLyricsPanel(track){
   if(parsed.length){
     return `
       <div class="lyrics-panel lyrics-${escapeHtml(state.lyricsSize)}">
-        ${lyricsToolsRow()}
+        ${lyricsToolsRow(true)}
         <div class="lyrics-scroll" id="lyrics-scroll">
           <div class="lyrics-pad"></div>
           ${parsed.map(line => `<p class="lyrics-line" data-time="${line.time}">${escapeHtml(line.text) || '\u2022'}</p>`).join('')}
@@ -2308,7 +2421,7 @@ function renderLyricsPanel(track){
   if(track.embeddedLyrics){
     return `
       <div class="lyrics-panel lyrics-${escapeHtml(state.lyricsSize)}">
-        ${lyricsToolsRow()}
+        ${lyricsToolsRow(true)}
         <div class="lyrics-scroll unsynced">
           <p class="lyrics-line active">${escapeHtml(track.embeddedLyrics)}</p>
         </div>
@@ -2322,11 +2435,11 @@ function renderLyricsPanel(track){
   }
   return `
     <div class="lyrics-panel lyrics-${escapeHtml(state.lyricsSize)}">
-      ${lyricsToolsRow()}
+      ${lyricsToolsRow(false)}
       <div class="empty-state" style="padding:26px 16px;">
         ${ICONS.lyrics}
         <h3>No lyrics yet</h3>
-        <p>Look them up automatically, or upload a matching .lrc file yourself.</p>
+        <p>Try Find Online, use \u201cSearch manually\u201d to look it up by title and artist, or upload a matching .lrc file.</p>
         <div style="display:flex;gap:8px;width:100%;margin-top:4px;">
           <button class="pill-btn primary" style="flex:1;" data-action="find-lyrics-online">${ICONS.search}<span>Find Online</span></button>
           <button class="pill-btn" style="flex:1;" data-action="trigger-lrc-upload">${ICONS.lyrics}<span>Upload .lrc</span></button>
@@ -2378,7 +2491,7 @@ function renderNowPlaying(){
         `}
       </div>
 
-      <div class="visualizer ${analyserNode ? '' : 'fake'} ${state.isPlaying ? '' : 'idle'}" id="visualizer-bars">
+      <div class="visualizer ${(analyserNode || vizSupported) ? '' : 'fake'} ${state.isPlaying ? '' : 'idle'}" id="visualizer-bars">
         ${Array.from({length:24}).map(()=>'<span></span>').join('')}
       </div>
 
@@ -2871,8 +2984,9 @@ function cleanupCandidates(){
   const out = [];
   for(const t of state.tracks){
     if(t.edited || !t.fileName) continue;
-    if(t.artist && t.artist !== 'Unknown Artist') continue; // has real tags: leave alone
+    if(!isJunkArtist(t.artist)) continue; // has a real artist tag: leave alone
     const p = parseFileName(t.fileName);
+    if(t.artist && t.artist !== 'Unknown Artist' && !p.artist) continue; // junk tag but nothing better in the file name
     if(!p.title) continue;
     if(p.title !== t.title || (p.artist && p.artist !== t.artist)) out.push({ id: t.id, title: p.title, artist: p.artist || 'Unknown Artist' });
   }
@@ -3115,12 +3229,12 @@ function renderQueue(){
 ============================================================ */
 const LYRICS_SIZES = ['s', 'm', 'l'];
 let lyricsMatchResults = [];
-function lyricsToolsRow(){
+function lyricsToolsRow(hasLyrics){
   return `<div class="lyrics-tools">
     <button class="mini-pill" data-action="lyrics-size" data-dir="-1" aria-label="Smaller text">A\u2212</button>
     <button class="mini-pill" data-action="lyrics-size" data-dir="1" aria-label="Larger text">A+</button>
     <span style="flex:1;"></span>
-    <button class="mini-pill" data-action="open-lyrics-match">${ICONS.search}<span>Wrong lyrics?</span></button>
+    <button class="mini-pill" data-action="open-lyrics-match">${ICONS.search}<span>${hasLyrics ? 'Wrong lyrics?' : 'Search manually'}</span></button>
   </div>`;
 }
 async function replaceLyricsForTrack(track, synced, plain){
@@ -3154,12 +3268,21 @@ async function searchLyricsMatches(){
   if(!title && !artist){ showToast('Type a title or artist first.'); return; }
   out.innerHTML = '<p class="lyrics-hint">Searching\u2026</p>';
   try{
-    const p = new URLSearchParams();
-    if(title){ p.set('track_name', title); if(artist) p.set('artist_name', artist); } else { p.set('q', artist); }
-    const res = await fetch('https://lrclib.net/api/search?' + p.toString());
-    if(!res.ok) throw new Error('HTTP ' + res.status);
-    const arr = await res.json();
-    lyricsMatchResults = (Array.isArray(arr) ? arr : []).filter(r => r && (r.syncedLyrics || r.plainLyrics)).slice(0, 10).map(r => ({
+    const attempts = [];
+    if(title && artist) attempts.push({ track_name: title, artist_name: artist });
+    attempts.push({ q: [artist, title].filter(Boolean).join(' ') });
+    if(title && artist) attempts.push({ q: title });
+    let arr = [];
+    for(const a of attempts){
+      const res = await fetch('https://lrclib.net/api/search?' + new URLSearchParams(a).toString());
+      if(!res.ok) throw new Error('HTTP ' + res.status);
+      const part = await res.json();
+      if(Array.isArray(part)) arr = arr.concat(part.filter(r => r && (r.syncedLyrics || r.plainLyrics)));
+      if(arr.length >= 3) break; // enough to choose from
+    }
+    const seenKeys = new Set();
+    arr = arr.filter(r => { const k = r.id != null ? 'id' + r.id : r.trackName + '|' + r.artistName + '|' + r.duration; if(seenKeys.has(k)) return false; seenKeys.add(k); return true; });
+    lyricsMatchResults = arr.slice(0, 10).map(r => ({
       title: sanitizeStr(r.trackName, 120), artist: sanitizeStr(r.artistName, 120), album: sanitizeStr(r.albumName, 120),
       duration: Number(r.duration) || 0,
       synced: typeof r.syncedLyrics === 'string' && r.syncedLyrics ? r.syncedLyrics : null,
@@ -3384,8 +3507,9 @@ function renderGuide(){
       ${guideItem('Lyrics', `
         <ul>
           <li>Spindle looks lyrics up automatically from the song\u2019s file name (for example <i>Artist - Title.mp3</i>). This needs internet once; the lyrics are then saved on your device.</li>
+          <li><b>Scroll the lyrics freely.</b> While you scroll, they stop following the song (for about 8 seconds), so you can look around and <b>tap any line</b> to start playing from there.</li>
           <li><b>A\u2212 / A+</b> change the text size.</li>
-          <li><b>Wrong lyrics?</b> lets you fix the title or artist, search again, and choose a different match.</li>
+          <li><b>Wrong lyrics?</b> (or <b>Search manually</b> when none were found) lets you type the title and artist, search, and choose a match.</li>
           <li><b>Replace Lyrics</b> / <b>Upload .lrc</b> loads your own lyrics file.</li>
         </ul>`)}
       ${guideItem('Editing song info', `
@@ -3488,6 +3612,7 @@ document.addEventListener('click', async (e)=>{
       if(crossfadeInProgress) cancelCrossfade();
       audio.currentTime = tm;
       if(audio.paused) audio.play().catch(()=>{});
+      lyricsFreeScrollUntil = 0; // follow the song again from the line you picked
       updateLyricsUI();
     }
     return;
